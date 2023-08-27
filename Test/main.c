@@ -29,9 +29,18 @@ int main()
     RingBuffer_flush(t, tData2);
 
     //------------ Testing Serial --------------//
+    char rData[512];
     Serial_init("/dev/pts/2", 9600);
     
     for(int i = 0; i < 10; i++) serialWriteStr("Hi, My name is Yohan: %d\n\r", i);
 
+    sprintf(rData, "Hi, I am Yohan\n");
+    serialWrite(rData, strlen(rData));
+
+    while(1)
+    {
+        if(serialRead(rData, 1) > 0) printf("%c", rData[0]);
+        fflush(stdout);
+    }
     return 0;
 }

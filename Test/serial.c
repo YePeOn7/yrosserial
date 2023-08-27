@@ -70,7 +70,7 @@ ssize_t serialWriteStr(char* format, ...)
     return write(fd, buffer, strlen(format));
 }
 
-ssize_t serialRead(int fd, char *data, size_t len)
+ssize_t serialRead(char *data, size_t len)
 {
     return read(fd, data, len);
 }

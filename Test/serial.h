@@ -15,6 +15,6 @@
 int Serial_init(char* port, long long baudrate);
 int serialWrite(char *data, size_t len);
 ssize_t serialWriteStr(char* format, ...);
-ssize_t serialRead(int fd, char *data, size_t len);
+ssize_t serialRead(char *data, size_t len);
 
 #endif /* __SERIAL_H__ */
