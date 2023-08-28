@@ -36,10 +36,17 @@ int main()
 
     sprintf(rData, "Hi, I am Yohan\n");
     serialWrite(rData, strlen(rData));
-
+    int bytesRead = 0;
     while(1)
     {
-        if(serialRead(rData, 1) > 0) printf("%c", rData[0]);
+        if((bytesRead = serialRead(rData, sizeof(rData))) > 0)
+        {
+            for(int i = 0; i < bytesRead; i++)
+            {
+                printf("%d ", rData[i]);
+            }
+            printf("\n");
+        }
         fflush(stdout);
     }
     return 0;
