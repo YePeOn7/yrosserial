@@ -20,7 +20,7 @@ static void logPrint(char* format, ...)
 RingBuffer_t* RingBuffer_create(size_t size)
 {
     RingBuffer_t* rb = (RingBuffer_t*) malloc(sizeof(RingBuffer_t));
-    rb->buffer = (uint8_t*) malloc(size);
+    rb->buffer = (uint8_t*) calloc(size, sizeof(uint8_t));
     rb->size = size;
     rb->count = 0;
     rb->tail = 0;

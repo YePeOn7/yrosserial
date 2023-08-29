@@ -2,9 +2,25 @@
 #include <stdint.h>
 #include <unistd.h>
 #include <string.h>
+#include <pthread.h>
 
 #include "ringBuffer.h"
 #include "serial.h"
+
+void* threadReadDataLoop()
+{
+    while(1)
+    {
+        sleep(1);
+    }
+
+    return NULL;
+}
+
+int rParser(uint8_t data, size_t len)
+{
+    return 0;
+}
 
 int main()
 {
@@ -29,21 +45,24 @@ int main()
     RingBuffer_flush(t, tData2);
 
     //------------ Testing Serial --------------//
-    char rData[512];
-    Serial_init("/dev/pts/2", 9600);
+    RingBuffer_t* r = RingBuffer_create(512);
+    uint8_t rData[512] = {0};
+    Serial_init("/dev/pts/5", 9600);
     
     for(int i = 0; i < 10; i++) serialWriteStr("Hi, My name is Yohan: %d\n\r", i);
 
-    sprintf(rData, "Hi, I am Yohan\n");
-    serialWrite(rData, strlen(rData));
-    int bytesRead = 0;
+    sprintf((char*)rData, "Hi, I am Yohan\n");
+    serialWrite(rData, strlen((char*)rData));
+    size_t bytesRead = 0;
     while(1)
     {
         if((bytesRead = serialRead(rData, sizeof(rData))) > 0)
         {
-            for(int i = 0; i < bytesRead; i++)
+            RingBuffer_append(r, rData, bytesRead);
+
+            for(int i = 0; i < r->count; i++)
             {
-                printf("%d ", rData[i]);
+                printf("%d ", r->buffer[r->tail+i]);
             }
             printf("\n");
         }

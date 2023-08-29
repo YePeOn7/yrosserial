@@ -54,7 +54,7 @@ int Serial_init(char* port, long long baudrate)
     return 0;
 }
 
-int serialWrite(char *data, size_t len)
+int serialWrite(uint8_t *data, size_t len)
 {
     return write(fd, data, len);
 }
@@ -70,7 +70,7 @@ ssize_t serialWriteStr(char* format, ...)
     return write(fd, buffer, strlen(format));
 }
 
-ssize_t serialRead(char *data, size_t len)
+ssize_t serialRead(uint8_t *data, size_t len)
 {
     return read(fd, data, len);
 }

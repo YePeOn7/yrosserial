@@ -17,7 +17,7 @@ class PacketRequestTopic:
 
 
 # Configure the serial port settings
-serial_port = serial.Serial('/dev/pts/1', baudrate=9600, timeout=1)
+serial_port = serial.Serial('/dev/pts/4', baudrate=9600, timeout=1)
 
 packetRequestTopic = PacketRequestTopic()
 
