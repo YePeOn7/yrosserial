@@ -10,7 +10,7 @@
 #include <stdint.h>
 #include <stdarg.h>
 
-#include "serial.h"
+#define UART_HANDLE int
 
 int Serial_init(char* port, long long baudrate);
 int serialWrite(uint8_t *data, size_t len);
