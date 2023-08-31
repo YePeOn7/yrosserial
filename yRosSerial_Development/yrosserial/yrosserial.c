@@ -9,6 +9,8 @@ static RingBuffer_t *tx;
 static yRosSerial_setting_t setting = {0};
 static uint8_t initialized;
 
+static uint8_t rTemp[64];
+
 int validateChecksum(uint8_t* message, size_t len)
 {
     uint8_t sum = len;
@@ -130,37 +132,24 @@ void yRosSerial_init(yRosSerial_setting_t* _setting)
 
     initialized = 1;
 
-    Serial_init("/dev/pts/2", 9600);
+    HAL_UARTEx_ReceiveToIdle_DMA(setting.huart, rTemp, sizeof(rTemp));
 }
 
-void yRosSerial_receive()
+void yRosSerial_handleCompleteReceive(UART_HandleTypeDef* huart, uint16_t size)
 {
-    if(initialized)
-    {
-        size_t bytesRead;
-        uint8_t rData[setting.rxBufSize];
-        memset(rData,0, sizeof(rData));
-
-        if ((bytesRead = serialRead(rData, sizeof(rData))) > 0)
-        {
-            RingBuffer_append(rx, rData, bytesRead);
-
-            for (int i = 0; i < rx->count; i++)
-            {
-                printf("%d ", rx->buffer[rx->tail + i]);
-            }
-            printf("\n");
-            fflush(stdout);
-        }
-    }
+	 if(huart == setting.huart)
+	 {
+		 RingBuffer_append(rx, rTemp, (size_t)size);
+		 HAL_UARTEx_ReceiveToIdle_DMA(setting.huart, rTemp, sizeof(rTemp));
+	 }
 }
-
-// void yRosSerial_handleCompleteReceive(UART_HANDLE uartHandle)
-// {
-
-// }
 
 void yRosSerial_spin()
 {
     rParser(rx);
+}
+
+void yRosSerial_getRxBuffer(uint8_t* buffer, size_t len)
+{
+	memcpy(buffer, rx->buffer, len);
 }

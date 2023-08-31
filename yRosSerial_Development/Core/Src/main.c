@@ -21,7 +21,7 @@
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
-
+#include "yrosserial.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -45,7 +45,7 @@ DMA_HandleTypeDef hdma_usart2_rx;
 DMA_HandleTypeDef hdma_usart2_tx;
 
 /* USER CODE BEGIN PV */
-
+uint8_t r[512] = {0};
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -98,11 +98,20 @@ int main(void)
 
   /* Infinite loop */
   /* USER CODE BEGIN WHILE */
+  yRosSerial_setting_t rosSerialSetting;
+  rosSerialSetting.rxBufSize = 256;
+  rosSerialSetting.txBufSize = 256;
+  rosSerialSetting.huart = &huart2;
+  yRosSerial_init(&rosSerialSetting);
+
   while (1)
   {
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
+	  yRosSerial_getRxBuffer(r, sizeof(r));
+	  HAL_Delay(1000);
+
   }
   /* USER CODE END 3 */
 }
@@ -251,7 +260,10 @@ static void MX_GPIO_Init(void)
 }
 
 /* USER CODE BEGIN 4 */
-
+void HAL_UARTEx_RxEventCallback(UART_HandleTypeDef *huart, uint16_t Size)
+{
+	yRosSerial_handleCompleteReceive(huart, Size);
+}
 /* USER CODE END 4 */
 
 /**

@@ -13,7 +13,7 @@ typedef struct
     size_t rxBufSize;
 } yRosSerial_setting_t;
 
-void yRosSerial_init();
+void yRosSerial_init(yRosSerial_setting_t* _setting);
 void yRosSerial_spin();
 void yRosSerial_receive();
 
