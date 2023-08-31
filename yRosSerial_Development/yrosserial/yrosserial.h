@@ -13,6 +13,7 @@ typedef struct
     size_t txBufSize;
     size_t rxBufSize;
     UART_HandleTypeDef* huart;
+    DMA_HandleTypeDef* hdma_rx;
 } yRosSerial_setting_t;
 
 void yRosSerial_init(yRosSerial_setting_t* _setting);

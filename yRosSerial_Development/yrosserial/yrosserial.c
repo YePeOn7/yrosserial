@@ -6,12 +6,12 @@
 
 static RingBuffer_t *rx;
 static RingBuffer_t *tx;
-static yRosSerial_setting_t setting =
-{ 0 };
+static yRosSerial_setting_t setting = { 0 };
 static uint8_t initialized;
 
-//static uint8_t rTemp[64];
-//static uint8_t tTemp[64];
+// temporary buffer
+static uint8_t rTemp[3];
+static uint8_t tTemp[3];
 
 static int validateChecksum(RingBuffer_t *rb, size_t len)
 {
@@ -95,28 +95,24 @@ void yRosSerial_init(yRosSerial_setting_t *_setting)
 
 	initialized = 1;
 
-	HAL_UARTEx_ReceiveToIdle_DMA(setting.huart, &rx->buffer[rx->head], rx->size - rx->head);
+	HAL_UARTEx_ReceiveToIdle_DMA(setting.huart, rTemp, sizeof(rTemp));
+	__HAL_DMA_DISABLE_IT(setting.hdma_rx, DMA_IT_HT);
 }
 
 void yRosSerial_handleCompleteReceive(UART_HandleTypeDef *huart, uint16_t size)
 {
 	if (huart == setting.huart)
 	{
-		for(int i =0; i < size; i++)
-		{
-			printf("%d ", rx->buffer[rx->head+i]);
-		}
-		printf("\n");
-		rx->count += size;
-		rx->head = (rx->head + size) % rx->size;
+//		for (int i = 0; i < size; i++)
+//		{
+//			printf("%d ", rx->buffer[rx->head + i]);
+//		}
+//		printf("\n");
 
-		uint16_t freeSize = rx->size - rx->count;
-		uint16_t toEnd = rx->size - rx->head;
-		uint16_t toGrab = toEnd < freeSize ? toEnd : freeSize;
-
-		printf("Received %d bytes of Data. Grab: %d (c: %d, h: %d, t: %d)..\n", size, toGrab, rx->count, rx->head, rx->tail);
-		if (toGrab > 0)
-			HAL_UARTEx_ReceiveToIdle_DMA(setting.huart, &rx->buffer[rx->head], toGrab);
+		RingBuffer_append(rx, rTemp, size);
+		HAL_UARTEx_ReceiveToIdle_DMA(setting.huart, rTemp, sizeof(rTemp));
+		__HAL_DMA_DISABLE_IT(setting.hdma_rx, DMA_IT_HT);
+		return;
 	}
 }
 

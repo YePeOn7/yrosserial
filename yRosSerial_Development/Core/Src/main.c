@@ -45,7 +45,7 @@ DMA_HandleTypeDef hdma_usart2_rx;
 DMA_HandleTypeDef hdma_usart2_tx;
 
 /* USER CODE BEGIN PV */
-uint8_t r[32] = {0};
+uint8_t r[256] = {0};
 RingBuffer_t rb;
 /* USER CODE END PV */
 
@@ -103,6 +103,7 @@ int main(void)
   rosSerialSetting.rxBufSize = 8;
   rosSerialSetting.txBufSize = 8;
   rosSerialSetting.huart = &huart2;
+  rosSerialSetting.hdma_rx = &hdma_usart2_rx;
   yRosSerial_init(&rosSerialSetting);
 
   int c = 0;
@@ -112,7 +113,7 @@ int main(void)
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
-//	  yRosSerial_getRxBuffer(r, sizeof(8)); //only for checking memory from Debug
+	  yRosSerial_getRxBuffer(r, 8); //only for checking memory from Debug
 	  check();
 	  if(c > 10)
 	  {
