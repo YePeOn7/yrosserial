@@ -60,7 +60,26 @@ size_t RingBuffer_append(RingBuffer_t* rb, uint8_t* data, size_t len)
     return 0;
 }
 
-size_t RingBuffer_pop(RingBuffer_t* rb, uint8_t* data, size_t len)
+// return: the number of poped bytes
+size_t RingBuffer_pop(RingBuffer_t* rb, uint8_t** data, size_t len) // better for rx
+{
+    size_t toEnd = rb->size - rb->tail;
+    size_t valToPop = rb->count > len? len : (size_t)rb->count;
+    if(valToPop > toEnd) valToPop = toEnd;
+
+    if(rb->count > 0)
+    {
+		*data = &rb->buffer[rb->tail];
+		rb->count -= valToPop;
+		rb->tail = (rb->tail + valToPop) % rb->size;
+
+        return valToPop;
+    }
+
+    return 0;
+}
+
+size_t RingBuffer_popCopy(RingBuffer_t* rb, uint8_t* data, size_t len)
 {
     size_t toEnd = rb->size - rb->tail;
     size_t valToPop = rb->count >= len? len : (size_t)rb->count;
@@ -73,7 +92,7 @@ size_t RingBuffer_pop(RingBuffer_t* rb, uint8_t* data, size_t len)
             memcpy(&data[0], &rb->buffer[rb->tail], toEnd);
             memcpy(&data[toEnd], &rb->buffer[0], valToPop - toEnd);
         }
-        
+
         rb->count -= valToPop;
         rb->tail = (rb->tail + valToPop) % rb->size;
 
@@ -83,7 +102,7 @@ size_t RingBuffer_pop(RingBuffer_t* rb, uint8_t* data, size_t len)
     return 0;
 }
 
-size_t RingBuffer_flush(RingBuffer_t* rb, uint8_t* data)
+size_t RingBuffer_flushCopy(RingBuffer_t* rb, uint8_t* data)
 {
-    return RingBuffer_pop(rb, data, rb->count);
+    return RingBuffer_popCopy(rb, data, rb->count);
 }

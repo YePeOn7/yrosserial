@@ -6,150 +6,192 @@
 
 static RingBuffer_t *rx;
 static RingBuffer_t *tx;
-static yRosSerial_setting_t setting = {0};
+static yRosSerial_setting_t setting =
+{ 0 };
 static uint8_t initialized;
 
-static uint8_t rTemp[64];
+//static uint8_t rTemp[64];
+//static uint8_t tTemp[64];
 
-int validateChecksum(uint8_t* message, size_t len)
+static int validateChecksum(RingBuffer_t *rb, size_t len)
 {
-    uint8_t sum = len;
-    for(int i = 0; i < len -1; i++) sum += message[i];
+	uint8_t sum = len;
+	for (int i = 0; i < len - 1; i++)
+		sum += rb->buffer[(rb->tail + i) % rb->size];
 
-    if(sum == message[len-1]) printf("Checksum is correct\n");
-    else printf("Checksum get: %d, expected: %d\n", message[len-1], sum);
+	uint8_t obtainedSum = rb->buffer[(rb->tail + len - 1) % rb->size];
+	if (sum == obtainedSum)
+		printf("Checksum is correct\n");
+	else
+		printf("Checksum get: %d, expected: %d\n", obtainedSum, sum);
 
-    return (sum == message[len-1]);
+	return (sum == obtainedSum);
 }
 
-void responseTopic()
+//static void txSend(uint8_t data, size_t len)
+//{
+//
+////	RingBuffer_pop(rx, tTemp, rx->count);
+////
+////	HAL_UART_Transmit_DMA(setting.huart, tTemp, Size);
+//}
+
+static void responseTopic()
 {
-    printf("Receive request topic\n");
+	printf("Receive request topic. Responding topic...\n");
+
 }
 
-int processIncomingMessage(uint8_t* message, size_t len)
+static int processIncomingMessage(RingBuffer_t *rb, size_t len)
 {
-    enum
-    {
-        NO_INSTRUCTION,
-        REQUESTING_TOPIC,
-        RESPONSE_TOPIC,
-        REQUEST_SYNC,
-        RESPONSE_SYNC
-    };
+	if (rb->count < len)
+		return -1;
+	enum
+	{
+		NO_INSTRUCTION, REQUESTING_TOPIC, RESPONSE_TOPIC, REQUEST_SYNC, RESPONSE_SYNC
+	};
 
-    // instruction
-    if(message[0] < 10)
-    {
-        uint8_t instruction = message[0];
-        if(validateChecksum(message, len))
-        {
-            printf("instruction: %d\n", instruction);
-            switch(instruction)
-            {
-                case REQUESTING_TOPIC: responseTopic(); break;
-            }
-        }
-        else return -1;
-    }
-    
-    // Topic Id
-    else
-    {
-        // uint8_t topicId = message[0];
-    }
+	// instruction
+	if (rb->buffer[rb->tail] < 10)
+	{
+		uint8_t instruction = rb->buffer[rb->tail];
+		printf("tail:%d, instruction: %d, len:%d \n", rb->tail, instruction, len);
+		if (validateChecksum(rb, len))
+		{
+			switch (instruction)
+			{
+			case REQUESTING_TOPIC:
+				responseTopic();
+				break;
+			}
+		}
+		else
+		{
+			rx->tail = (rx->tail + len) % rx->size;
+			rx->count -= len;
+			return -2;
+		}
+	}
 
-    return 0;
-}
+	// Topic Id
+	else
+	{
+		// uint8_t topicId = message[0];
+	}
 
-int rParser(RingBuffer_t *rb)
-{
-    enum
-    {
-        GET_HEADER1,
-        GET_HEADER2,
-        GET_LENGTH,
-        GET_MESSAGE
-    };
+	rx->count -= len;
+	rx->tail = (rx->tail + len) % rx->size;
 
-    static int state = GET_HEADER1;
-    static uint8_t bufferMessage[MAX_MESSAGE_SIZE - 3] = {0}; // It will contain all packet excluding teh header 1, header 2, and length
-    static size_t len = 0;
-    uint8_t breakFor = 0;
-
-    while(rb->count > 0)
-    {
-        uint8_t data;
-        // printf("check rb->count: %d\n", rb->count);
-        if(state!= GET_MESSAGE) RingBuffer_pop(rb, &data, 1); 
-
-        switch (state)
-        {
-        case GET_HEADER1:
-            printf("Checking Header 1\n");
-            if(data == 5) state = GET_HEADER2;
-            break;
-        case GET_HEADER2:
-            printf("Checking Header 2\n");
-            if(data == 9) state = GET_LENGTH;
-            else if(data == 5);         // keep the current state
-            else state = GET_HEADER1;   // reset the state 
-            break;
-        case GET_LENGTH:
-            printf("Getting length\n");
-            len = data;
-            state = GET_MESSAGE;
-            break;
-        case GET_MESSAGE:
-            printf("Getting Message\n");
-            if(rb->count >= len) 
-            {
-                RingBuffer_pop(rb, bufferMessage, len);
-                processIncomingMessage(bufferMessage, len);
-                state = GET_HEADER1;
-                len = 0;
-            }
-            else 
-            {
-                printf("Break! rb count: %d\n", rb->count);
-                breakFor = 1;
-            }
-            break;
-        }
-        
-        if(breakFor) break;
-    }
-    return 0;
+	return 0;
 }
 
 //------------------ Interface Implementation --------------- //
 
-void yRosSerial_init(yRosSerial_setting_t* _setting)
+void yRosSerial_init(yRosSerial_setting_t *_setting)
 {
-    rx = RingBuffer_create(_setting->rxBufSize);
-    tx = RingBuffer_create(_setting->txBufSize);
-    memcpy(&setting, _setting, sizeof(yRosSerial_setting_t));
+	rx = RingBuffer_create(_setting->rxBufSize);
+	tx = RingBuffer_create(_setting->txBufSize);
+	memcpy(&setting, _setting, sizeof(yRosSerial_setting_t));
 
-    initialized = 1;
+	initialized = 1;
 
-    HAL_UARTEx_ReceiveToIdle_DMA(setting.huart, rTemp, sizeof(rTemp));
+	HAL_UARTEx_ReceiveToIdle_DMA(setting.huart, &rx->buffer[rx->head], rx->size - rx->head);
 }
 
-void yRosSerial_handleCompleteReceive(UART_HandleTypeDef* huart, uint16_t size)
+void yRosSerial_handleCompleteReceive(UART_HandleTypeDef *huart, uint16_t size)
 {
-	 if(huart == setting.huart)
-	 {
-		 RingBuffer_append(rx, rTemp, (size_t)size);
-		 HAL_UARTEx_ReceiveToIdle_DMA(setting.huart, rTemp, sizeof(rTemp));
-	 }
+	if (huart == setting.huart)
+	{
+		for(int i =0; i < size; i++)
+		{
+			printf("%d ", rx->buffer[rx->head+i]);
+		}
+		printf("\n");
+		rx->count += size;
+		rx->head = (rx->head + size) % rx->size;
+
+		uint16_t freeSize = rx->size - rx->count;
+		uint16_t toEnd = rx->size - rx->head;
+		uint16_t toGrab = toEnd < freeSize ? toEnd : freeSize;
+
+		printf("Received %d bytes of Data. Grab: %d (c: %d, h: %d, t: %d)..\n", size, toGrab, rx->count, rx->head, rx->tail);
+		if (toGrab > 0)
+			HAL_UARTEx_ReceiveToIdle_DMA(setting.huart, &rx->buffer[rx->head], toGrab);
+	}
 }
 
 void yRosSerial_spin()
 {
-    rParser(rx);
+	enum
+	{
+		GET_HEADER1, GET_HEADER2, GET_LENGTH, GET_MESSAGE
+	};
+
+	static int state = GET_HEADER1;
+//    static uint8_t bufferMessage[MAX_MESSAGE_SIZE - 3] = {0}; // It will contain all packet excluding teh header 1, header 2, and length
+	static size_t len = 0;
+	uint8_t breakFor = 0;
+
+	while (rx->count > 0)
+	{
+		uint8_t *data = NULL;
+		// printf("check rb->count: %d\n", rb->count);
+		if (state != GET_MESSAGE)
+		{
+			RingBuffer_pop(rx, &data, 1);
+			printf("tail: %d, c: %d, getData: %d\n", rx->tail, rx->count, *data);
+		}
+		switch (state)
+		{
+		case GET_HEADER1:
+			printf("Checking Header 1\n");
+			if (*data == 5)
+				state = GET_HEADER2;
+			break;
+		case GET_HEADER2:
+			printf("Checking Header 2\n");
+			if (*data == 9)
+				state = GET_LENGTH;
+			else if (*data == 5)
+				;         // keep the current state
+			else
+				state = GET_HEADER1;   // reset the state
+			break;
+		case GET_LENGTH:
+			printf("Getting length\n");
+			len = *data;
+			state = GET_MESSAGE;
+			break;
+		case GET_MESSAGE:
+			printf("Getting Message\n");
+			if (rx->count >= len)
+			{
+//                RingBuffer_popCopy(rx, bufferMessage, len);
+				processIncomingMessage(rx, len);
+				state = GET_HEADER1;
+				len = 0;
+			}
+			else
+			{
+				printf("Break! rb count: %d\n", rx->count);
+				breakFor = 1;
+			}
+			break;
+		}
+
+		if (breakFor)
+			break;
+
+		printf("\n");
+	}
 }
 
-void yRosSerial_getRxBuffer(uint8_t* buffer, size_t len)
+void yRosSerial_getRxBuffer(uint8_t *buffer, size_t len)
 {
 	memcpy(buffer, rx->buffer, len);
+}
+
+void check()
+{
+	printf("c: %d, h: %d, t: %d, dma: %ld\n", rx->count, rx->head, rx->tail, __HAL_DMA_GET_COUNTER(setting.huart->hdmarx));
 }

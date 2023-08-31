@@ -45,7 +45,8 @@ DMA_HandleTypeDef hdma_usart2_rx;
 DMA_HandleTypeDef hdma_usart2_tx;
 
 /* USER CODE BEGIN PV */
-uint8_t r[512] = {0};
+uint8_t r[32] = {0};
+RingBuffer_t rb;
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -99,19 +100,29 @@ int main(void)
   /* Infinite loop */
   /* USER CODE BEGIN WHILE */
   yRosSerial_setting_t rosSerialSetting;
-  rosSerialSetting.rxBufSize = 256;
-  rosSerialSetting.txBufSize = 256;
+  rosSerialSetting.rxBufSize = 8;
+  rosSerialSetting.txBufSize = 8;
   rosSerialSetting.huart = &huart2;
   yRosSerial_init(&rosSerialSetting);
+
+  int c = 0;
 
   while (1)
   {
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
-	  yRosSerial_getRxBuffer(r, sizeof(r));
-	  HAL_Delay(1000);
+//	  yRosSerial_getRxBuffer(r, sizeof(8)); //only for checking memory from Debug
+	  check();
+	  if(c > 10)
+	  {
+		  yRosSerial_spin();
+		  c = 0;
+	  }
 
+	  c++;
+
+	  HAL_Delay(1000);
   }
   /* USER CODE END 3 */
 }
