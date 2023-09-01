@@ -20,10 +20,8 @@ static int validateChecksum(RingBuffer_t *rb, size_t len)
 		sum += rb->buffer[(rb->tail + i) % rb->size];
 
 	uint8_t obtainedSum = rb->buffer[(rb->tail + len - 1) % rb->size];
-	if (sum == obtainedSum)
-		printf("Checksum is correct\n");
-	else
-		printf("Checksum get: %d, expected: %d\n", obtainedSum, sum);
+	if (sum == obtainedSum) printf("Checksum is correct\n");
+	else printf("Checksum get: %d, expected: %d\n", obtainedSum, sum);
 
 	return (sum == obtainedSum);
 }
@@ -44,8 +42,7 @@ static void responseTopic()
 
 static int processIncomingMessage(RingBuffer_t *rb, size_t len)
 {
-	if (rb->count < len)
-		return -1;
+	if (rb->count < len) return -1;
 	enum
 	{
 		NO_INSTRUCTION, REQUESTING_TOPIC, RESPONSE_TOPIC, REQUEST_SYNC, RESPONSE_SYNC
@@ -110,7 +107,7 @@ void yRosSerial_handleCompleteReceive(UART_HandleTypeDef *huart, uint16_t size)
 //		printf("\n");
 
 		RingBuffer_append(rx, rTemp, size);
-		HAL_UARTEx_ReceiveToIdle_DMA(setting.huart, rTemp, sizeof(rTemp));
+//		HAL_UARTEx_ReceiveToIdle_DMA(setting.huart, rTemp, sizeof(rTemp));
 		__HAL_DMA_DISABLE_IT(setting.hdma_rx, DMA_IT_HT);
 		return;
 	}
@@ -141,17 +138,13 @@ void yRosSerial_spin()
 		{
 		case GET_HEADER1:
 			printf("Checking Header 1\n");
-			if (*data == 5)
-				state = GET_HEADER2;
+			if (*data == 5) state = GET_HEADER2;
 			break;
 		case GET_HEADER2:
 			printf("Checking Header 2\n");
-			if (*data == 9)
-				state = GET_LENGTH;
-			else if (*data == 5)
-				;         // keep the current state
-			else
-				state = GET_HEADER1;   // reset the state
+			if (*data == 9) state = GET_LENGTH;
+			else if (*data == 5) ;         // keep the current state
+			else state = GET_HEADER1;   // reset the state
 			break;
 		case GET_LENGTH:
 			printf("Getting length\n");
@@ -175,8 +168,7 @@ void yRosSerial_spin()
 			break;
 		}
 
-		if (breakFor)
-			break;
+		if (breakFor) break;
 
 		printf("\n");
 	}

@@ -6,20 +6,19 @@
 
 typedef struct
 {
-    uint8_t* buffer;
-    uint16_t size;
-    uint16_t head;
-    uint16_t tail;
-    uint16_t count;
+	uint8_t *buffer;
+	uint16_t size;
+	uint16_t head;
+	uint16_t tail;
+	uint16_t count;
 } RingBuffer_t;
 
-
 RingBuffer_t* RingBuffer_create(size_t size);
-void RingBuffer_free(RingBuffer_t* rb);
+void RingBuffer_free(RingBuffer_t *rb);
 
-size_t RingBuffer_append(RingBuffer_t* rb, uint8_t* data, size_t len);
-size_t RingBuffer_pop(RingBuffer_t* rb, uint8_t** data, size_t len);
-size_t RingBuffer_popCopy(RingBuffer_t* rb, uint8_t* data, size_t len);
-size_t RingBuffer_flushCopy(RingBuffer_t* rb, uint8_t* data);
- 
+size_t RingBuffer_append(RingBuffer_t *rb, uint8_t *data, size_t len);
+size_t RingBuffer_pop(RingBuffer_t *rb, uint8_t **data, size_t len);
+size_t RingBuffer_popCopy(RingBuffer_t *rb, uint8_t *data, size_t len);
+size_t RingBuffer_flushCopy(RingBuffer_t *rb, uint8_t *data);
+
 #endif /* __RING_BUFFER_H__ */
