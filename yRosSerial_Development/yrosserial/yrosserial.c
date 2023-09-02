@@ -3,15 +3,26 @@
 #include "yrosserial.h"
 
 #define MAX_MESSAGE_SIZE    128 // maximum message size (Should not be more than buffer size)
+#define MAX_PUBLISHER_SIZE	10
+#define MAX_SUBSRIBER_SIZE	10
 
+typedef struct
+{
+	const char *name;
+	uint8_t id;
+	yRosSerial_MessageType_t type;
+} PublisherInfo_t;
+
+static PublisherInfo_t publisherList[MAX_PUBLISHER_SIZE] = { 0 };
 static RingBuffer_t *rx;
 static RingBuffer_t *tx;
 static yRosSerial_setting_t setting = { 0 };
 static uint8_t initialized;
+static uint8_t topicId = 10; // topic Id start from 10
 
 // temporary buffer
-static uint8_t rTemp[3];
-static uint8_t tTemp[3];
+static uint8_t rTemp[64];
+static uint8_t tTemp[64];
 
 static int validateChecksum(RingBuffer_t *rb, size_t len)
 {
@@ -26,27 +37,73 @@ static int validateChecksum(RingBuffer_t *rb, size_t len)
 	return (sum == obtainedSum);
 }
 
-//static void txSend(uint8_t data, size_t len)
+static void txFlush()
+{
+	if (__HAL_UART_GET_FLAG(setting.huart, UART_FLAG_TC))
+	{
+		size_t bytesToFlush = RingBuffer_popCopy(tx, tTemp, sizeof(tTemp));
+		HAL_UART_Transmit_DMA(setting.huart, tTemp, bytesToFlush);
+		return;
+	}
+}
+
+/**
+ * @brief add header and ack to the packet and put it to RingBuffer
+ * @param message The message to serialize
+ * @param mt Message Type
+ * @return None
+ */
+//static void serialize(void* message, yRosSerial_MessageType_t mt,size_t len)
 //{
+//	uint8_t header={0x05, 0x09};
+//	uint8_t ack = 0;
 //
-////	RingBuffer_pop(rx, tTemp, rx->count);
-////
-////	HAL_UART_Transmit_DMA(setting.huart, tTemp, Size);
+//	// get ack
+//	if(mt == MT)
 //}
 
-static void responseTopic()
+void responseTopic()
 {
 	printf("Receive request topic. Responding topic...\n");
+	for (int i = 0; i < MAX_PUBLISHER_SIZE; i++)
+	{
+		if (publisherList[i].id == 0) break;
 
+
+		yRosSerial_responseTopic_t r = { 0 };
+		r.length = strlen(publisherList[i].name) + 1 + 5; // 1: null terminator, 5: instruction, topic id, type, action, checksum
+		r.action = ACT_PUBLISH;
+		r.instruction = INS_RES_TOPIC;
+		r.topicId = publisherList[i].id;
+		r.type = publisherList[i].type;
+		strcpy(r.topicName, publisherList[i].name);
+
+		// calculate ack
+		uint8_t ack = 0;
+		ack += r.length;
+		ack += r.instruction;
+		ack += r.action;
+		ack += r.topicId;
+		ack += r.type;
+		for(int i = 0; i < strlen(r.topicName) + 1; i++)
+		{
+			ack += r.topicName[i];
+		}
+
+		// pack header, message and ack to ring buffer
+		uint8_t header[] = {0x05, 0x09};
+
+		printf("Send Publisher[%d]: %s , l: %d, t: %d\n", r.topicId, r.topicName, r.length, r.type);
+		RingBuffer_append(tx, header, sizeof(header));
+		RingBuffer_append(tx, (uint8_t*) &r, r.length); // r.length measure topic name len + null terminator, action, instruction, topic id, and checksum
+		RingBuffer_append(tx, &ack, sizeof(uint8_t));
+	}
+	txFlush();
 }
 
 static int processIncomingMessage(RingBuffer_t *rb, size_t len)
 {
 	if (rb->count < len) return -1;
-	enum
-	{
-		NO_INSTRUCTION, REQUESTING_TOPIC, RESPONSE_TOPIC, REQUEST_SYNC, RESPONSE_SYNC
-	};
 
 	// instruction
 	if (rb->buffer[rb->tail] < 10)
@@ -55,12 +112,7 @@ static int processIncomingMessage(RingBuffer_t *rb, size_t len)
 		printf("tail:%d, instruction: %d, len:%d \n", rb->tail, instruction, len);
 		if (validateChecksum(rb, len))
 		{
-			switch (instruction)
-			{
-			case REQUESTING_TOPIC:
-				responseTopic();
-				break;
-			}
+			if (instruction == INS_REQ_TOPIC) responseTopic();
 		}
 		else
 		{
@@ -100,15 +152,21 @@ void yRosSerial_handleCompleteReceive(UART_HandleTypeDef *huart, uint16_t size)
 {
 	if (huart == setting.huart)
 	{
-//		for (int i = 0; i < size; i++)
-//		{
-//			printf("%d ", rx->buffer[rx->head + i]);
-//		}
-//		printf("\n");
-
 		RingBuffer_append(rx, rTemp, size);
-//		HAL_UARTEx_ReceiveToIdle_DMA(setting.huart, rTemp, sizeof(rTemp));
+		HAL_UARTEx_ReceiveToIdle_DMA(setting.huart, rTemp, sizeof(rTemp));
 		__HAL_DMA_DISABLE_IT(setting.hdma_rx, DMA_IT_HT);
+		return;
+	}
+}
+
+void yRosSerial_handleCompleteTransmit(UART_HandleTypeDef *huart)
+{
+	if (huart == setting.huart)
+	{
+		if(tx->count > 0)
+		{
+			txFlush();
+		}
 		return;
 	}
 }
@@ -117,7 +175,10 @@ void yRosSerial_spin()
 {
 	enum
 	{
-		GET_HEADER1, GET_HEADER2, GET_LENGTH, GET_MESSAGE
+		GET_HEADER1,
+		GET_HEADER2,
+		GET_LENGTH,
+		GET_MESSAGE
 	};
 
 	static int state = GET_HEADER1;
@@ -174,12 +235,39 @@ void yRosSerial_spin()
 	}
 }
 
-void yRosSerial_getRxBuffer(uint8_t *buffer, size_t len)
+void yRosSerial_advertise(const char *topicName, yRosSerial_MessageType_t mType)
 {
-	memcpy(buffer, rx->buffer, len);
+	for (int i = 0; i < MAX_PUBLISHER_SIZE; i++)
+	{
+		if (publisherList[i].id == 0)
+		{
+			publisherList[i].id = topicId++;
+			publisherList[i].name = topicName;
+			publisherList[i].type = mType;
+			break;
+		}
+	}
+}
+
+void yRosSerial_getRxBuffer(uint8_t *buffer)
+{
+	memcpy(buffer, rx->buffer, rx->size);
+}
+
+void yRosSerial_getTxBuffer(uint8_t *buffer)
+{
+	memcpy(buffer, tx->buffer, tx->size);
 }
 
 void check()
 {
-	printf("c: %d, h: %d, t: %d, dma: %ld\n", rx->count, rx->head, rx->tail, __HAL_DMA_GET_COUNTER(setting.huart->hdmarx));
+	printf("c: %d, h: %d, t: %d, dma: %ld, tc: %d\n", rx->count, rx->head, rx->tail, __HAL_DMA_GET_COUNTER(setting.huart->hdmarx), __HAL_UART_GET_FLAG(setting.huart, UART_FLAG_TC));
+}
+
+void transmitTest()
+{
+	char* stringData = "YOHAN\n";
+
+	RingBuffer_append(tx, (uint8_t*)stringData, strlen(stringData) + 1);
+	txFlush();
 }
