@@ -49,10 +49,29 @@ typedef struct
 	char topicName[252];
 } yRosSerial_responseTopic_t;
 
+typedef void (*Callback_t)(void *);
+
+typedef struct
+{
+	const char *name;
+	uint8_t id;
+	yRosSerial_MessageType_t type;
+} yRosSerial_pubHandle_t;
+
+typedef struct
+{
+	const char *name;
+	uint8_t id;
+	yRosSerial_MessageType_t type;
+	Callback_t callback;
+} yRosSerial_subHandle_t;
+
 void yRosSerial_init(yRosSerial_setting_t *_setting);
 void yRosSerial_spin();
 
-void yRosSerial_advertise(const char* topicName,  yRosSerial_MessageType_t mType);
+yRosSerial_pubHandle_t* yRosSerial_advertise(const char* topicName,  yRosSerial_MessageType_t mType);
+void yRosSerial_subscribe(const char* topicName, yRosSerial_MessageType_t mType, Callback_t callback);
+void yRosSerial_publish(yRosSerial_pubHandle_t* hpub, void* message);
 
 void yRosSerial_getRxBuffer(uint8_t *buffer);
 void yRosSerial_getTxBuffer(uint8_t *buffer);

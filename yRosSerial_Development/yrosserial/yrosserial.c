@@ -6,14 +6,8 @@
 #define MAX_PUBLISHER_SIZE	10
 #define MAX_SUBSRIBER_SIZE	10
 
-typedef struct
-{
-	const char *name;
-	uint8_t id;
-	yRosSerial_MessageType_t type;
-} PublisherInfo_t;
-
-static PublisherInfo_t publisherList[MAX_PUBLISHER_SIZE] = { 0 };
+static yRosSerial_pubHandle_t publisherList[MAX_PUBLISHER_SIZE] = { 0 };
+yRosSerial_subHandle_t subscriberList[MAX_SUBSRIBER_SIZE] = { 0 };
 static RingBuffer_t *rx;
 static RingBuffer_t *tx;
 static yRosSerial_setting_t setting = { 0 };
@@ -69,7 +63,6 @@ void responseTopic()
 	{
 		if (publisherList[i].id == 0) break;
 
-
 		yRosSerial_responseTopic_t r = { 0 };
 		r.length = strlen(publisherList[i].name) + 1 + 5; // 1: null terminator, 5: instruction, topic id, type, action, checksum
 		r.action = ACT_PUBLISH;
@@ -94,6 +87,38 @@ void responseTopic()
 		uint8_t header[] = {0x05, 0x09};
 
 		printf("Send Publisher[%d]: %s , l: %d, t: %d\n", r.topicId, r.topicName, r.length, r.type);
+		RingBuffer_append(tx, header, sizeof(header));
+		RingBuffer_append(tx, (uint8_t*) &r, r.length); // r.length measure topic name len + null terminator, action, instruction, topic id, and checksum
+		RingBuffer_append(tx, &ack, sizeof(uint8_t));
+	}
+	for(int i = 0; i < MAX_SUBSRIBER_SIZE; i++)
+	{
+		if (subscriberList[i].id == 0) break;
+
+		yRosSerial_responseTopic_t r = { 0 };
+		r.length = strlen(subscriberList[i].name) + 1 + 5; // 1: null terminator, 5: instruction, topic id, type, action, checksum
+		r.action = ACT_SUBSCRIBE;
+		r.instruction = INS_RES_TOPIC;
+		r.topicId = subscriberList[i].id;
+		r.type = subscriberList[i].type;
+		strcpy(r.topicName, subscriberList[i].name);
+
+		// calculate ack
+		uint8_t ack = 0;
+		ack += r.length;
+		ack += r.instruction;
+		ack += r.action;
+		ack += r.topicId;
+		ack += r.type;
+		for(int i = 0; i < strlen(r.topicName) + 1; i++)
+		{
+			ack += r.topicName[i];
+		}
+
+		// pack header, message and ack to ring buffer
+		uint8_t header[] = {0x05, 0x09};
+
+		printf("Send Subscriber[%d]: %s , l: %d, t: %d\n", r.topicId, r.topicName, r.length, r.type);
 		RingBuffer_append(tx, header, sizeof(header));
 		RingBuffer_append(tx, (uint8_t*) &r, r.length); // r.length measure topic name len + null terminator, action, instruction, topic id, and checksum
 		RingBuffer_append(tx, &ack, sizeof(uint8_t));
@@ -235,7 +260,7 @@ void yRosSerial_spin()
 	}
 }
 
-void yRosSerial_advertise(const char *topicName, yRosSerial_MessageType_t mType)
+yRosSerial_pubHandle_t* yRosSerial_advertise(const char *topicName, yRosSerial_MessageType_t mType)
 {
 	for (int i = 0; i < MAX_PUBLISHER_SIZE; i++)
 	{
@@ -244,9 +269,31 @@ void yRosSerial_advertise(const char *topicName, yRosSerial_MessageType_t mType)
 			publisherList[i].id = topicId++;
 			publisherList[i].name = topicName;
 			publisherList[i].type = mType;
-			break;
+			return &publisherList[i];
 		}
 	}
+
+	return NULL;
+}
+
+void yRosSerial_subscribe(const char* topicName, yRosSerial_MessageType_t mType, Callback_t callback)
+{
+	for (int i = 0; i < MAX_SUBSRIBER_SIZE; i++)
+	{
+		if (subscriberList[i].id == 0)
+		{
+			subscriberList[i].id = topicId++;
+			subscriberList[i].name = topicName;
+			subscriberList[i].type = mType;
+			subscriberList[i].callback = callback;
+			return;
+		}
+	}
+}
+
+void yRosSerial_publish(yRosSerial_pubHandle_t* hpub, void* message)
+{
+	;
 }
 
 void yRosSerial_getRxBuffer(uint8_t *buffer)

@@ -61,7 +61,10 @@ static void MX_USART2_UART_Init(void);
 
 /* Private user code ---------------------------------------------------------*/
 /* USER CODE BEGIN 0 */
-
+void sub1(void* message)
+{
+	printf("From Sub 1");
+}
 /* USER CODE END 0 */
 
 /**
@@ -107,9 +110,13 @@ int main(void)
 	rosSerialSetting.hdma_rx = &hdma_usart2_rx;
 	yRosSerial_init(&rosSerialSetting);
 
+//	yRosSerial_pubHandle_t* pubTest1 = yRosSerial_advertise("/test1", MT_STRING);
+//	yRosSerial_pubHandle_t* pubTest2 = yRosSerial_advertise("/test2", MT_FLOAT32);
+
 	yRosSerial_advertise("/test1", MT_STRING);
 	yRosSerial_advertise("/test2", MT_FLOAT32);
-	int c = 0;
+
+	yRosSerial_subscribe("/sub1", MT_STRING, &sub1);
 
 	while (1)
 	{
