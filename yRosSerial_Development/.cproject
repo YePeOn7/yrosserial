@@ -78,9 +78,9 @@
 						</toolChain>
 					</folderInfo>
 					<sourceEntries>
+						<entry excluding="serial.h|serial.c" flags="VALUE_WORKSPACE_PATH|RESOLVED" kind="sourcePath" name="yrosserial"/>
 						<entry flags="VALUE_WORKSPACE_PATH|RESOLVED" kind="sourcePath" name="Core"/>
 						<entry flags="VALUE_WORKSPACE_PATH|RESOLVED" kind="sourcePath" name="Drivers"/>
-						<entry excluding="serial.h|serial.c" flags="VALUE_WORKSPACE_PATH|RESOLVED" kind="sourcePath" name="yrosserial"/>
 					</sourceEntries>
 				</configuration>
 			</storageModule>

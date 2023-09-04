@@ -5,7 +5,7 @@
 #include <stdio.h>
 
 #include "ringBuffer.h"
-//#include "serial.h"
+#include "yRosSerial_mt.h"
 #include "main.h" // from the project
 
 typedef enum
@@ -49,6 +49,13 @@ typedef struct
 	char topicName[252];
 } yRosSerial_responseTopic_t;
 
+typedef struct
+{
+	uint8_t length;
+	uint8_t topicId;
+	uint8_t type;
+} yRosSerial_messageBase_t;
+
 typedef void (*Callback_t)(void *);
 
 typedef struct
@@ -77,6 +84,9 @@ void yRosSerial_getRxBuffer(uint8_t *buffer);
 void yRosSerial_getTxBuffer(uint8_t *buffer);
 void yRosSerial_handleCompleteReceive(UART_HandleTypeDef *huart, uint16_t size);
 void yRosSerial_handleCompleteTransmit(UART_HandleTypeDef *huart);
+uint16_t yRosSerial_getRxCount();
+uint16_t yRosSerial_getTxCount();
+
 void responseTopic();
 void check();
 void transmitTest();

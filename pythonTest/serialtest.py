@@ -39,7 +39,9 @@ class ReceivingState:
 def processMessage(message):
     global subList
 
-    if(message[1] == 0x02): # no need to convert message[0] to int. When accessing the bytes variable by using []. it will automatically convert into int
+    # check message[1] --> instruction / TopicId
+    # no need to convert message[1] to int. When accessing the bytes variable by using []. it will automatically convert into int
+    if(message[1] == 0x02): # response topic
         # print(f"Response Topic is received: {len(message)}. length: {message[0]}")
         # for i in message:
         #     print(i, end=" ")
@@ -82,9 +84,32 @@ def processMessage(message):
             pubList.append(pubInfo)
         
         # print(dt)
+    elif message[1] == 0x03:
+        pass
+    elif message[1] >= 10: #topicId
+        # calculate checksum
+        checksum = 0
+        for i in range(len(message) - 1):
+            checksum += message[i]
+        checksum &= 0xFF
+        # print(f"checksum: {checksum}")
+        
+        if(message[2] == 0):
+            #dt[0] --> length
+            #dt[1] --> topicId
+            #dt[2] --> messagetype
+            #dt[3] --> string
+            #dt[-1] --> checksum
+            dt = struct.unpack(f"3B{message[0]-3}sB", message)
+            strMessage = dt[3].decode()
+            print(f"Get Message ({dt[1]}): {strMessage}")
+            
+
+
+
 
 # Configure the serial port settings
-serial_port = serial.Serial('/dev/ttyACM0', baudrate=115200, timeout=1)
+serial_port = serial.Serial('/dev/ttyACM0', baudrate=256000, timeout=1)
 
 packetRequestTopic = PacketRequestTopic()
 
@@ -100,7 +125,8 @@ message = b''
 while 1:
     while(serial_port.in_waiting > 0):
         rxData = serial_port.read(1)
-        # print(f"received data: {rxData}")
+        # print(f"received data: {rxData} -- ", end= "")
+        # continue
         if(receivingState == ReceivingState.GET_HEADER1):
             if(rxData == b'\x05'): 
                 # print("Header 1 is received") 
@@ -113,12 +139,13 @@ while 1:
             else: receivingState = ReceivingState.GET_HEADER1
         elif(receivingState == ReceivingState.GET_LENGTH):
             messageLength = int.from_bytes(rxData, 'little')
-            # print(f"data length: {messageLength}")
+            # print(f"data length: {messageLength} ({rxData})")
             message = rxData #start message with the length data
             messageCnt = 0
             receivingState = ReceivingState.GET_MESSAGE
         elif(receivingState == ReceivingState.GET_MESSAGE):
             # print(f"m[{messageCnt}]: {rxData}")
+            # print("getting messages")
             message += rxData
             messageCnt += 1
 

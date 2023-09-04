@@ -1,22 +1,24 @@
 #include <string.h>
 
 #include "yrosserial.h"
+#include <stdio.h>
 
 #define MAX_MESSAGE_SIZE    128 // maximum message size (Should not be more than buffer size)
 #define MAX_PUBLISHER_SIZE	10
 #define MAX_SUBSRIBER_SIZE	10
+#define HEADER				{0x05, 0x09}
 
 static yRosSerial_pubHandle_t publisherList[MAX_PUBLISHER_SIZE] = { 0 };
 yRosSerial_subHandle_t subscriberList[MAX_SUBSRIBER_SIZE] = { 0 };
-static RingBuffer_t *rx;
-static RingBuffer_t *tx;
+RingBuffer_t *rx;
+RingBuffer_t *tx;
 static yRosSerial_setting_t setting = { 0 };
 static uint8_t initialized;
 static uint8_t topicId = 10; // topic Id start from 10
 
 // temporary buffer
-static uint8_t rTemp[64];
-static uint8_t tTemp[64];
+uint8_t rTemp[64];
+uint8_t tTemp[64];
 
 static int validateChecksum(RingBuffer_t *rb, size_t len)
 {
@@ -37,7 +39,7 @@ static void txFlush()
 	{
 		size_t bytesToFlush = RingBuffer_popCopy(tx, tTemp, sizeof(tTemp));
 		HAL_UART_Transmit_DMA(setting.huart, tTemp, bytesToFlush);
-		return;
+//		return;
 	}
 }
 
@@ -293,7 +295,34 @@ void yRosSerial_subscribe(const char* topicName, yRosSerial_MessageType_t mType,
 
 void yRosSerial_publish(yRosSerial_pubHandle_t* hpub, void* message)
 {
-	;
+	uint8_t t[256];
+	if(hpub->type == MT_STRING)
+	{
+		yRosSerial_string* strMsg = (yRosSerial_string*) message;
+		uint8_t header[] = HEADER;
+		yRosSerial_messageBase_t messageBase; // handle packet data before main message
+		messageBase.length = strlen(strMsg->data) + 4; // add null terminator, topicId, Message type, and checksum
+		messageBase.topicId = hpub->id;
+		messageBase.type = hpub->type;
+
+		// generate checksum
+		uint8_t checksum = messageBase.length;
+		checksum += hpub->id;
+		for (int i = 0; i < strlen(strMsg->data); i++)
+		{
+			checksum += strMsg->data[i];
+		}
+//		size_t l=strlen(strMsg->data);
+		// Package packet to Ring Buffer
+		RingBuffer_append(tx, header, sizeof(header));
+		RingBuffer_append(tx, (uint8_t*)&messageBase, sizeof(messageBase));
+		RingBuffer_append(tx, (uint8_t*)strMsg->data, strlen(strMsg->data)+1);
+		RingBuffer_append(tx, &checksum, sizeof(uint8_t));
+		printf("%s (%d)\n", strMsg->data, messageBase.length);
+		memcpy(t, tx->buffer, 256);
+
+		txFlush();
+	}
 }
 
 void yRosSerial_getRxBuffer(uint8_t *buffer)
@@ -306,9 +335,26 @@ void yRosSerial_getTxBuffer(uint8_t *buffer)
 	memcpy(buffer, tx->buffer, tx->size);
 }
 
+uint16_t yRosSerial_getRxCount()
+{
+	return rx->count;
+}
+
+uint16_t yRosSerial_getTxCount()
+{
+	return tx->count;
+}
+
 void check()
 {
-	printf("c: %d, h: %d, t: %d, dma: %ld, tc: %d\n", rx->count, rx->head, rx->tail, __HAL_DMA_GET_COUNTER(setting.huart->hdmarx), __HAL_UART_GET_FLAG(setting.huart, UART_FLAG_TC));
+//	printf("c: %d, h: %d, t: %d, dma: %ld, tc: %d\n", rx->count, rx->head, rx->tail, __HAL_DMA_GET_COUNTER(setting.huart->hdmarx), __HAL_UART_GET_FLAG(setting.huart, UART_FLAG_TC));
+//	printf("c: %d, h: %d, t: %d, dma: %ld, tc: %d\n", tx->count, tx->head, tx->tail, __HAL_DMA_GET_COUNTER(setting.huart->hdmarx), __HAL_UART_GET_FLAG(setting.huart, UART_FLAG_TC));
+//	static int c = 0;
+//
+//	RingBuffer_append(tx, (uint8_t*) &c, sizeof(int));
+//	txFlush();
+//
+//	c++;
 }
 
 void transmitTest()
