@@ -36,9 +36,15 @@ class ReceivingState:
     GET_LENGTH = 2
     GET_MESSAGE = 3
 
+class MessageType:
+    String = 0
+    Float32 = 1
+    Odometry2d = 2
+    Twist2d = 3
+
 def processMessage(message):
     global subList
-
+    messageLen = message[0]
     # check message[1] --> instruction / TopicId
     # no need to convert message[1] to int. When accessing the bytes variable by using []. it will automatically convert into int
     if(message[1] == 0x02): # response topic
@@ -87,14 +93,16 @@ def processMessage(message):
     elif message[1] == 0x03:
         pass
     elif message[1] >= 10: #topicId
+        messageType = message[2]
+
         # calculate checksum
         checksum = 0
         for i in range(len(message) - 1):
             checksum += message[i]
         checksum &= 0xFF
-        # print(f"checksum: {checksum}")
-        
-        if(message[2] == 0):
+        print(f"checksum: {checksum}")
+        print(f"----- get messageType : {messageType}")
+        if(messageType == MessageType.String):
             #dt[0] --> length
             #dt[1] --> topicId
             #dt[2] --> messagetype
@@ -103,11 +111,17 @@ def processMessage(message):
             dt = struct.unpack(f"3B{message[0]-3}sB", message)
             strMessage = dt[3].decode()
             print(f"Get Message ({dt[1]}): {strMessage}")
+        elif(messageType == MessageType.Float32):
+            for i in message:
+                print(i, end=" ")
+            print("")
+            print(f"len msg: {len(message)}")
+            dt = struct.unpack(f"<3BfB", message)
+            floatMsg = dt[3]
+            print(f"Get Float32 Message: {floatMsg}")
             
 
-
-
-
+# ----------------- main process -------------------- #
 # Configure the serial port settings
 serial_port = serial.Serial('/dev/ttyACM0', baudrate=256000, timeout=1)
 
