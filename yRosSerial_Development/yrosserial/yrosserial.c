@@ -296,18 +296,20 @@ void yRosSerial_subscribe(const char* topicName, yRosSerial_MessageType_t mType,
 void yRosSerial_publish(yRosSerial_pubHandle_t* hpub, void* message)
 {
 	uint8_t t[256];
+	uint8_t header[] = HEADER;
+	yRosSerial_messageBase_t messageBase = {0}; // handle packet data before main message
+
+	messageBase.topicId = hpub->id;
+	messageBase.type = hpub->type;
 	if(hpub->type == MT_STRING)
 	{
 		yRosSerial_string* strMsg = (yRosSerial_string*) message;
-		uint8_t header[] = HEADER;
-		yRosSerial_messageBase_t messageBase; // handle packet data before main message
 		messageBase.length = strlen(strMsg->data) + 4; // add null terminator, topicId, Message type, and checksum
-		messageBase.topicId = hpub->id;
-		messageBase.type = hpub->type;
 
 		// generate checksum
 		uint8_t checksum = messageBase.length;
 		checksum += hpub->id;
+		checksum += hpub->type;
 		for (int i = 0; i < strlen(strMsg->data); i++)
 		{
 			checksum += strMsg->data[i];
@@ -322,6 +324,38 @@ void yRosSerial_publish(yRosSerial_pubHandle_t* hpub, void* message)
 		memcpy(t, tx->buffer, 256);
 
 		txFlush();
+	}
+	else if(hpub->type == MT_FLOAT32)
+	{
+		yRosSerial_float32* msg = (yRosSerial_float32*) message;
+		size_t msgSize = sizeof(yRosSerial_float32);
+		messageBase.length = sizeof(float) + 3; //additional: topicId, Message type, checksum
+
+		// generate checksum
+		uint8_t checksum = messageBase.length;
+		checksum += hpub->id;
+		checksum += hpub->type;
+		for(int i = 0; i < msgSize; i++)
+		{
+			checksum += ((uint8_t*)msg)[i];
+		}
+
+		RingBuffer_append(tx, header, sizeof(header));
+		RingBuffer_append(tx, (uint8_t*)&messageBase, sizeof(messageBase));
+		RingBuffer_append(tx, (uint8_t*)msg, msgSize);
+		RingBuffer_append(tx, &checksum, sizeof(uint8_t));
+		printf("float: %.3f\n", msg->data);
+
+		for(int i = 0; i < sizeof(messageBase); i++)
+		{
+			printf("%d ", ((uint8_t*)&messageBase)[i]);
+		}
+
+		for(int i = 0; i < msgSize; i++)
+		{
+			printf("%d ", ((uint8_t*)msg)[i]);
+		}
+		printf("%d\n", checksum);
 	}
 }
 

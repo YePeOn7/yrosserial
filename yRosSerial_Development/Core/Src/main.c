@@ -117,16 +117,19 @@ int main(void)
 	yRosSerial_init(&rosSerialSetting);
 
 	yRosSerial_pubHandle_t *pubTest1 = yRosSerial_advertise("/test1", MT_STRING);
-	yRosSerial_pubHandle_t *pubTest2 = yRosSerial_advertise("/test2", MT_STRING);
+	yRosSerial_pubHandle_t *pubTest2 = yRosSerial_advertise("/test2", MT_FLOAT32);
 
-	yRosSerial_advertise("/test1", MT_STRING);
-	yRosSerial_advertise("/test2", MT_FLOAT32);
+//	yRosSerial_advertise("/test1", MT_STRING);
+//	yRosSerial_advertise("/test2", MT_FLOAT32);
 
 	yRosSerial_subscribe("/sub1", MT_STRING, &sub1);
 	char bufferMsg[128];
 
 	yRosSerial_string strMsg;
 	strMsg.data = bufferMsg;
+
+	yRosSerial_float32 float32Msg;
+	float32Msg.data = 2.0;
 //	strMsg.data = "Hi my name is Yohan";
 
 	while (1)
@@ -137,8 +140,11 @@ int main(void)
 		sprintf(bufferMsg, "Hi From Pub1 (%d)", cnt++);
 		yRosSerial_publish(pubTest1, &strMsg);
 
-		sprintf(bufferMsg, "Hi From Pub2 (%d)", cnt++);
-		yRosSerial_publish(pubTest2, &strMsg);
+//		sprintf(bufferMsg, "Hi From Pub2 (%d)", cnt++);
+//		yRosSerial_publish(pubTest2, &strMsg);
+
+		yRosSerial_publish(pubTest2, &float32Msg);
+		float32Msg.data += 0.1;
 
 		yRosSerial_getRxBuffer(r); //only for checking memory from Debug
 		yRosSerial_getTxBuffer(t); //only for checking memory from Debug
@@ -149,7 +155,7 @@ int main(void)
 		a = yRosSerial_getTxCount();
 //		while(cnt > 1013);
 
-		HAL_Delay(5);
+		HAL_Delay(1000);
 	}
 	/* USER CODE END 3 */
 }

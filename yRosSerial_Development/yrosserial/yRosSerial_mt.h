@@ -16,7 +16,7 @@ typedef struct
 typedef struct
 {
 	float data;
-}yRosSerial_;
+}yRosSerial_float32;
 
 typedef struct
 {
