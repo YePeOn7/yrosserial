@@ -1,11 +1,10 @@
 #!/usr/bin/python3
 
+from typing import List
 import serial
 import struct
 import time
 
-subList = []
-pubList = []
 
 class PubInfo:
     def __init__(self) -> None:
@@ -152,6 +151,8 @@ def processMessage(message):
             
 
 # ----------------- main process -------------------- #
+subList:List[SubInfo] = []
+pubList:List[PubInfo] = []
 # Configure the serial port settings
 serial_port = serial.Serial('/dev/ttyACM0', baudrate=1000000, timeout=1)
 
