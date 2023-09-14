@@ -39,8 +39,9 @@ class ReceivingState:
 class MessageType:
     String = 0
     Float32 = 1
-    Odometry2d = 2
-    Twist2d = 3
+    Float64 = 2
+    Odometry2d = 3
+    Twist2d = 4
 
 def processMessage(message):
     global subList
@@ -100,30 +101,59 @@ def processMessage(message):
         for i in range(len(message) - 1):
             checksum += message[i]
         checksum &= 0xFF
-        print(f"checksum: {checksum}")
-        print(f"----- get messageType : {messageType}")
-        if(messageType == MessageType.String):
-            #dt[0] --> length
-            #dt[1] --> topicId
-            #dt[2] --> messagetype
-            #dt[3] --> string
-            #dt[-1] --> checksum
-            dt = struct.unpack(f"3B{message[0]-3}sB", message)
-            strMessage = dt[3].decode()
-            print(f"Get Message ({dt[1]}): {strMessage}")
-        elif(messageType == MessageType.Float32):
-            for i in message:
-                print(i, end=" ")
-            print("")
-            print(f"len msg: {len(message)}")
-            dt = struct.unpack(f"<3BfB", message)
-            floatMsg = dt[3]
-            print(f"Get Float32 Message: {floatMsg}")
+        # print(f"calculated checksum: {checksum} --- obtained checksum: {message[-1]}")
+        # print(f"----- get messageType : {messageType}")
+        if(checksum == message[-1]):
+            if(messageType == MessageType.String):
+                #dt[0] --> length
+                #dt[1] --> topicId
+                #dt[2] --> messagetype
+                #dt[3] --> string
+                #dt[-1] --> checksum
+                dt = struct.unpack(f"3B{message[0]-3}sB", message)
+                strMessage = dt[3].decode()
+                print(f"Get Message ({dt[1]}): {strMessage}")
+            elif(messageType == MessageType.Float32):
+                # for i in message:
+                #     print(i, end=" ")
+                # print("")
+                # print(f"len msg: {len(message)}")
+                dt = struct.unpack(f"<3BfB", message)
+                floatMsg = dt[3]
+                print(f"Get Float32 Message: {floatMsg:.4f}")
+            elif(messageType == MessageType.Float64):
+                # for i in message:
+                #     print(i, end=" ")
+                # print("")
+                # print(f"len msg: {len(message)}")
+                dt = struct.unpack(f"<3BdB", message)
+                float64Msg = dt[3]
+                print(f"Get Float64 Message: {float64Msg:.4f}")
+            elif(messageType == MessageType.Odometry2d):
+                # for i in message:
+                #     print(i, end=" ")
+                # print("")
+                # print(f"len msg: {len(message)}")
+                dt = struct.unpack(f"<3B3fB", message)
+                odometryMsgX = dt[3]
+                odometryMsgY = dt[4]
+                odometryMsgZ = dt[5]
+                print(f"Get Odometry Message: x: {odometryMsgX:.4f}, y:{odometryMsgY:.4f}, z:{odometryMsgZ:.4f}")
+            elif(messageType == MessageType.Twist2d):
+                # for i in message:
+                #     print(i, end=" ")
+                # print("")
+                # print(f"len msg: {len(message)}")
+                dt = struct.unpack(f"<3B3fB", message)
+                twistMsgX = dt[3]
+                twistMsgY = dt[4]
+                twistMsgZ = dt[5]
+                print(f"Get Twist Message: x: {twistMsgX:.4f}, y:{twistMsgY:.4f}, z:{twistMsgZ:.4f}")
             
 
 # ----------------- main process -------------------- #
 # Configure the serial port settings
-serial_port = serial.Serial('/dev/ttyACM0', baudrate=256000, timeout=1)
+serial_port = serial.Serial('/dev/ttyACM0', baudrate=1000000, timeout=1)
 
 packetRequestTopic = PacketRequestTopic()
 
