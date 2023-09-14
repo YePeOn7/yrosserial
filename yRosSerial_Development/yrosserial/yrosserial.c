@@ -320,16 +320,14 @@ void yRosSerial_publish(yRosSerial_pubHandle_t* hpub, void* message)
 		RingBuffer_append(tx, (uint8_t*)&messageBase, sizeof(messageBase));
 		RingBuffer_append(tx, (uint8_t*)strMsg->data, strlen(strMsg->data)+1);
 		RingBuffer_append(tx, &checksum, sizeof(uint8_t));
-		printf("%s (%d)\n", strMsg->data, messageBase.length);
+//		printf("%s (%d)\n", strMsg->data, messageBase.length);
 		memcpy(t, tx->buffer, 256);
-
-		txFlush();
 	}
 	else if(hpub->type == MT_FLOAT32)
 	{
 		yRosSerial_float32* msg = (yRosSerial_float32*) message;
 		size_t msgSize = sizeof(yRosSerial_float32);
-		messageBase.length = sizeof(float) + 3; //additional: topicId, Message type, checksum
+		messageBase.length = msgSize+ 3; //additional: topicId, Message type, checksum
 
 		// generate checksum
 		uint8_t checksum = messageBase.length;
@@ -344,19 +342,116 @@ void yRosSerial_publish(yRosSerial_pubHandle_t* hpub, void* message)
 		RingBuffer_append(tx, (uint8_t*)&messageBase, sizeof(messageBase));
 		RingBuffer_append(tx, (uint8_t*)msg, msgSize);
 		RingBuffer_append(tx, &checksum, sizeof(uint8_t));
-		printf("float: %.3f\n", msg->data);
+//		printf("float ==> data: %.3f\n", msg->data);
 
-		for(int i = 0; i < sizeof(messageBase); i++)
-		{
-			printf("%d ", ((uint8_t*)&messageBase)[i]);
-		}
+//		for(int i = 0; i < sizeof(messageBase); i++)
+//		{
+//			printf("%d ", ((uint8_t*)&messageBase)[i]);
+//		}
+//
+//		for(int i = 0; i < msgSize; i++)
+//		{
+//			printf("%d ", ((uint8_t*)msg)[i]);
+//		}
+//		printf("%d\n", checksum);
+	}
+	else if(hpub->type == MT_FLOAT64)
+	{
+		yRosSerial_float64* msg = (yRosSerial_float64*) message;
+		size_t msgSize = sizeof(yRosSerial_float64);
+		messageBase.length = msgSize+ 3; //additional: topicId, Message type, checksum
 
+		// generate checksum
+		uint8_t checksum = messageBase.length;
+		checksum += hpub->id;
+		checksum += hpub->type;
 		for(int i = 0; i < msgSize; i++)
 		{
-			printf("%d ", ((uint8_t*)msg)[i]);
+			checksum += ((uint8_t*)msg)[i];
 		}
-		printf("%d\n", checksum);
+
+		RingBuffer_append(tx, header, sizeof(header));
+		RingBuffer_append(tx, (uint8_t*)&messageBase, sizeof(messageBase));
+		RingBuffer_append(tx, (uint8_t*)msg, msgSize);
+		RingBuffer_append(tx, &checksum, sizeof(uint8_t));
+//		printf("float ==> data: %.3f\n", msg->data);
+
+//		for(int i = 0; i < sizeof(messageBase); i++)
+//		{
+//			printf("%d ", ((uint8_t*)&messageBase)[i]);
+//		}
+//
+//		for(int i = 0; i < msgSize; i++)
+//		{
+//			printf("%d ", ((uint8_t*)msg)[i]);
+//		}
+//		printf("%d\n", checksum);
 	}
+	else if(hpub->type == MT_ODOMETRY2D)
+	{
+		yRosSerial_odometry2d* msg = (yRosSerial_odometry2d*) message;
+		size_t msgSize = sizeof(yRosSerial_odometry2d);
+		messageBase.length = msgSize + 3; //additional: topicId, Message type, checksum
+
+		// generate checksum
+		uint8_t checksum = messageBase.length;
+		checksum += hpub->id;
+		checksum += hpub->type;
+		for(int i = 0; i < msgSize; i++)
+		{
+			checksum += ((uint8_t*)msg)[i];
+		}
+
+		RingBuffer_append(tx, header, sizeof(header));
+		RingBuffer_append(tx, (uint8_t*)&messageBase, sizeof(messageBase));
+		RingBuffer_append(tx, (uint8_t*)msg, msgSize);
+		RingBuffer_append(tx, &checksum, sizeof(uint8_t));
+//		printf("odometry2d ==> x: %.3f y: %.3f w: %.3f\n", msg->x, msg->y, msg->w);
+
+//		for(int i = 0; i < sizeof(messageBase); i++)
+//		{
+//			printf("%d ", ((uint8_t*)&messageBase)[i]);
+//		}
+//
+//		for(int i = 0; i < msgSize; i++)
+//		{
+//			printf("%d ", ((uint8_t*)msg)[i]);
+//		}
+//		printf("%d\n", checksum);
+	}
+	else if(hpub->type == MT_TWIST2D)
+	{
+		yRosSerial_twist2d* msg = (yRosSerial_twist2d*) message;
+		size_t msgSize = sizeof(yRosSerial_twist2d);
+		messageBase.length = msgSize + 3; //additional: topicId, Message type, checksum
+
+		// generate checksum
+		uint8_t checksum = messageBase.length;
+		checksum += hpub->id;
+		checksum += hpub->type;
+		for(int i = 0; i < msgSize; i++)
+		{
+			checksum += ((uint8_t*)msg)[i];
+		}
+
+		RingBuffer_append(tx, header, sizeof(header));
+		RingBuffer_append(tx, (uint8_t*)&messageBase, sizeof(messageBase));
+		RingBuffer_append(tx, (uint8_t*)msg, msgSize);
+		RingBuffer_append(tx, &checksum, sizeof(uint8_t));
+//		printf("twist2d ==> x: %.3f y: %.3f w: %.3f\n", msg->x, msg->y, msg->w);
+
+//		for(int i = 0; i < sizeof(messageBase); i++)
+//		{
+//			printf("%d ", ((uint8_t*)&messageBase)[i]);
+//		}
+//
+//		for(int i = 0; i < msgSize; i++)
+//		{
+//			printf("%d ", ((uint8_t*)msg)[i]);
+//		}
+//		printf("%d\n", checksum);
+	}
+	txFlush();
 }
 
 void yRosSerial_getRxBuffer(uint8_t *buffer)

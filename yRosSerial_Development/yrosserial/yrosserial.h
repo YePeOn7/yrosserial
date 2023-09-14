@@ -21,6 +21,7 @@ typedef enum
 {
 	MT_STRING,
 	MT_FLOAT32,
+	MT_FLOAT64,
 	MT_ODOMETRY2D,
 	MT_TWIST2D,
 } yRosSerial_MessageType_t;

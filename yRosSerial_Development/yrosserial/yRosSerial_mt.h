@@ -20,6 +20,11 @@ typedef struct
 
 typedef struct
 {
+	double data;
+}yRosSerial_float64;
+
+typedef struct
+{
 	float x;
 	float y;
 	float w;

@@ -118,6 +118,9 @@ int main(void)
 
 	yRosSerial_pubHandle_t *pubTest1 = yRosSerial_advertise("/test1", MT_STRING);
 	yRosSerial_pubHandle_t *pubTest2 = yRosSerial_advertise("/test2", MT_FLOAT32);
+	yRosSerial_pubHandle_t *pubTest3 = yRosSerial_advertise("/test3", MT_FLOAT64);
+	yRosSerial_pubHandle_t *pubTest4 = yRosSerial_advertise("/test4", MT_ODOMETRY2D);
+	yRosSerial_pubHandle_t *pubTest5 = yRosSerial_advertise("/test5", MT_TWIST2D);
 
 //	yRosSerial_advertise("/test1", MT_STRING);
 //	yRosSerial_advertise("/test2", MT_FLOAT32);
@@ -125,13 +128,13 @@ int main(void)
 	yRosSerial_subscribe("/sub1", MT_STRING, &sub1);
 	char bufferMsg[128];
 
-	yRosSerial_string strMsg;
+	yRosSerial_string strMsg = { 0 };
+	yRosSerial_float32 float32Msg = { 0 };
+	yRosSerial_float64 float64Msg = { 0 };
+	yRosSerial_odometry2d odometryMsg = { 0 };
+	yRosSerial_twist2d twistMsg = { 0 };
+
 	strMsg.data = bufferMsg;
-
-	yRosSerial_float32 float32Msg;
-	float32Msg.data = 2.0;
-//	strMsg.data = "Hi my name is Yohan";
-
 	while (1)
 	{
 		/* USER CODE END WHILE */
@@ -140,11 +143,21 @@ int main(void)
 		sprintf(bufferMsg, "Hi From Pub1 (%d)", cnt++);
 		yRosSerial_publish(pubTest1, &strMsg);
 
-//		sprintf(bufferMsg, "Hi From Pub2 (%d)", cnt++);
-//		yRosSerial_publish(pubTest2, &strMsg);
-
 		yRosSerial_publish(pubTest2, &float32Msg);
 		float32Msg.data += 0.1;
+
+		yRosSerial_publish(pubTest3, &float64Msg);
+		float64Msg.data += 0.1;
+
+		yRosSerial_publish(pubTest4, &odometryMsg);
+		odometryMsg.x += 0.01;
+		odometryMsg.y += 0.02;
+		odometryMsg.w += 0.03;
+
+		yRosSerial_publish(pubTest5, &twistMsg);
+		twistMsg.x += 1;
+		twistMsg.y += 2;
+		twistMsg.w += 3;
 
 		yRosSerial_getRxBuffer(r); //only for checking memory from Debug
 		yRosSerial_getTxBuffer(t); //only for checking memory from Debug
@@ -155,7 +168,7 @@ int main(void)
 		a = yRosSerial_getTxCount();
 //		while(cnt > 1013);
 
-		HAL_Delay(1000);
+		HAL_Delay(1);
 	}
 	/* USER CODE END 3 */
 }
@@ -229,7 +242,7 @@ static void MX_USART2_UART_Init(void)
 
 	/* USER CODE END USART2_Init 1 */
 	huart2.Instance = USART2;
-	huart2.Init.BaudRate = 256000;
+	huart2.Init.BaudRate = 1000000;
 	huart2.Init.WordLength = UART_WORDLENGTH_8B;
 	huart2.Init.StopBits = UART_STOPBITS_1;
 	huart2.Init.Parity = UART_PARITY_NONE;
