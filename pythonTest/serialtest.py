@@ -93,7 +93,17 @@ def processMessage(message):
     elif message[1] == 0x03:
         pass
     elif message[1] >= 10: #topicId
-        messageType = message[2]
+        pubInfo = PubInfo()
+        pubInfo.topicId = message[1]
+        messageType = message[2] ######################################### Consider to be remove, since this info can be obtained from publist
+
+        for pub in pubList:
+            if(pubInfo.topicId == pub.topicId):
+                pubInfo = pub
+                break
+        
+        if(pubInfo.type == None): 
+            return
 
         # calculate checksum
         checksum = 0
@@ -103,7 +113,7 @@ def processMessage(message):
         # print(f"calculated checksum: {checksum} --- obtained checksum: {message[-1]}")
         # print(f"----- get messageType : {messageType}")
         if(checksum == message[-1]):
-            if(messageType == MessageType.String):
+            if(pubInfo.type == MessageType.String):
                 #dt[0] --> length
                 #dt[1] --> topicId
                 #dt[2] --> messagetype
@@ -111,24 +121,24 @@ def processMessage(message):
                 #dt[-1] --> checksum
                 dt = struct.unpack(f"3B{message[0]-3}sB", message)
                 strMessage = dt[3].decode()
-                print(f"Get Message ({dt[1]}): {strMessage}")
-            elif(messageType == MessageType.Float32):
+                print(f"Get Message ({dt[1]}): {strMessage} --> {pubInfo.topicName}")
+            elif(pubInfo.type == MessageType.Float32):
                 # for i in message:
                 #     print(i, end=" ")
                 # print("")
                 # print(f"len msg: {len(message)}")
                 dt = struct.unpack(f"<3BfB", message)
                 floatMsg = dt[3]
-                print(f"Get Float32 Message: {floatMsg:.4f}")
-            elif(messageType == MessageType.Float64):
+                print(f"Get Float32 Message: {floatMsg:.4f} --> {pubInfo.topicName}")
+            elif(pubInfo.type == MessageType.Float64):
                 # for i in message:
                 #     print(i, end=" ")
                 # print("")
                 # print(f"len msg: {len(message)}")
                 dt = struct.unpack(f"<3BdB", message)
                 float64Msg = dt[3]
-                print(f"Get Float64 Message: {float64Msg:.4f}")
-            elif(messageType == MessageType.Odometry2d):
+                print(f"Get Float64 Message: {float64Msg:.4f} --> {pubInfo.topicName}")
+            elif(pubInfo.type == MessageType.Odometry2d):
                 # for i in message:
                 #     print(i, end=" ")
                 # print("")
@@ -137,8 +147,8 @@ def processMessage(message):
                 odometryMsgX = dt[3]
                 odometryMsgY = dt[4]
                 odometryMsgZ = dt[5]
-                print(f"Get Odometry Message: x: {odometryMsgX:.4f}, y:{odometryMsgY:.4f}, z:{odometryMsgZ:.4f}")
-            elif(messageType == MessageType.Twist2d):
+                print(f"Get Odometry Message: x: {odometryMsgX:.4f}, y:{odometryMsgY:.4f}, z:{odometryMsgZ:.4f} --> {pubInfo.topicName}")
+            elif(pubInfo.type == MessageType.Twist2d):
                 # for i in message:
                 #     print(i, end=" ")
                 # print("")
@@ -147,7 +157,7 @@ def processMessage(message):
                 twistMsgX = dt[3]
                 twistMsgY = dt[4]
                 twistMsgZ = dt[5]
-                print(f"Get Twist Message: x: {twistMsgX:.4f}, y:{twistMsgY:.4f}, z:{twistMsgZ:.4f}")
+                print(f"Get Twist Message: x: {twistMsgX:.4f}, y:{twistMsgY:.4f}, z:{twistMsgZ:.4f} --> {pubInfo.topicName}")
             
 
 # ----------------- main process -------------------- #
