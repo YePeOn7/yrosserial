@@ -52,3 +52,10 @@ Mkfile.old
 dkms.conf
 
 **/.vscode/**
+**/Debug/
+**/*.launch
+**/language.settings.xml
+**/stm32cubeide.project.prefs
+**/com.st.stm32cube.ide.mcu.sfrview.prefs
+**/stm32cubeide.project.prefs
+
