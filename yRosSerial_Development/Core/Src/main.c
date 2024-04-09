@@ -22,6 +22,7 @@
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
 #include "yrosserial.h"
+#include "sub1Callback.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -67,10 +68,7 @@ static void MX_USART2_UART_Init(void);
 
 /* Private user code ---------------------------------------------------------*/
 /* USER CODE BEGIN 0 */
-void sub1(void *message)
-{
-	printf("From Sub 1");
-}
+
 /* USER CODE END 0 */
 
 /**
@@ -122,12 +120,14 @@ int main(void)
 	yRosSerial_pubHandle_t *pubTest4 = yRosSerial_advertise("/test4", MT_ODOMETRY2D);
 	yRosSerial_pubHandle_t *pubTest5 = yRosSerial_advertise("/test5", MT_TWIST2D);
 
+	yRosSerial_subHandle_t *subTest1 = yRosSerial_subscribe("/sub1", MT_STRING, sub1);
+
 //	yRosSerial_advertise("/test1", MT_STRING);
 //	yRosSerial_advertise("/test2", MT_FLOAT32);
 
-	yRosSerial_subscribe("/sub1", MT_STRING, &sub1);
-	char bufferMsg[128];
+	char bufferMsg[256];
 
+	// message that will be used to publish the data to the topics
 	yRosSerial_string strMsg = { 0 };
 	yRosSerial_float32 float32Msg = { 0 };
 	yRosSerial_float64 float64Msg = { 0 };
@@ -140,7 +140,7 @@ int main(void)
 		/* USER CODE END WHILE */
 
 		/* USER CODE BEGIN 3 */
-		sprintf(bufferMsg, "Hi From Pub1 (%d)", cnt++);
+		sprintf(bufferMsg, "Hi.... Yoyoyoyo.... From Pub1 (%d)", cnt++);
 		yRosSerial_publish(pubTest1, &strMsg);
 
 		yRosSerial_publish(pubTest2, &float32Msg);
@@ -165,10 +165,9 @@ int main(void)
 
 		yRosSerial_spin();
 
-		a = yRosSerial_getTxCount();
 //		while(cnt > 1013);
-
-		HAL_Delay(1);
+		a = yRosSerial_getTxCount();
+		HAL_Delay(5);
 	}
 	/* USER CODE END 3 */
 }

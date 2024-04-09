@@ -7,6 +7,7 @@
 #define MAX_PUBLISHER_SIZE	10
 #define MAX_SUBSRIBER_SIZE	10
 #define HEADER				{0x05, 0x09}
+#define MAX_INSTRUCTION_VAL	10
 
 static yRosSerial_pubHandle_t publisherList[MAX_PUBLISHER_SIZE] = { 0 };
 yRosSerial_subHandle_t subscriberList[MAX_SUBSRIBER_SIZE] = { 0 };
@@ -44,19 +45,24 @@ static void txFlush()
 }
 
 /**
- * @brief add header and ack to the packet and put it to RingBuffer
- * @param message The message to serialize
- * @param mt Message Type
+ * @brief read data from ring buffer without modify ring buffer component. The data will be read from tail + offset as much len parameter
+ * @param offset The start index to read from the tail
+ * @param len the number of data to be obtained
  * @return None
  */
-//static void serialize(void* message, yRosSerial_MessageType_t mt,size_t len)
-//{
-//	uint8_t header={0x05, 0x09};
-//	uint8_t ack = 0;
-//
-//	// get ack
-//	if(mt == MT)
-//}
+void readRingBuffer(RingBuffer_t *rb, uint16_t offset, uint16_t len, void* output)
+{
+	uint8_t *b = rb->buffer;
+	uint16_t t = rb->tail;
+	if(t + offset + len <= rb->size) memcpy(output, b+offset+t, len);
+	else
+	{
+		size_t len1 = rb->size - (rb->tail + offset);
+		size_t len2 = len - len1;
+		memcpy(output, b + t + offset, len1);
+		memcpy((uint8_t*)output + (t + offset), b, len2);
+	}
+}
 
 void responseTopic()
 {
@@ -128,24 +134,47 @@ void responseTopic()
 	txFlush();
 }
 
+// rb should be a ring buffer with tail that point to parameter instruction or topicId (packet after length, should be 4th byte)
+// len is the packets length excluding header and length info
 static int processIncomingMessage(RingBuffer_t *rb, size_t len)
 {
+	uint8_t *b = rb->buffer;
+	uint16_t t = rb->tail;
+//	uint16_t bz = rb->size; // buffer size
+
 	if (rb->count < len) return -1;
 
-	// instruction
-	if (rb->buffer[rb->tail] < 10)
+	// validate checksum
+	if (!validateChecksum(rb, len))
 	{
-		uint8_t instruction = rb->buffer[rb->tail];
+		rx->tail = (rx->tail + len) % rx->size;
+		rx->count -= len;
+		return -2;
+	}
+
+	if (b[t] < MAX_INSTRUCTION_VAL) // process instruction
+	{
+		uint8_t instruction = b[t];
 		printf("tail:%d, instruction: %d, len:%d \n", rb->tail, instruction, len);
-		if (validateChecksum(rb, len))
+		if (instruction == INS_REQ_TOPIC) responseTopic();
+
+	}
+	else if(b[t] >= MAX_INSTRUCTION_VAL) // process message from subscibed topic
+	{
+		int id = b[t]; //topic id
+		uint8_t x[512];
+
+		memcpy(x, rb->buffer, 256);
+//		int mt = b[(t+1) % bz]; //message_type
+//		int i_dt = (t+2) % bz; // index of data
+		uint8_t data[len-1]; // -2 for excluding id and mt + 1 for add a null terminator
+		readRingBuffer(rb, 2, len-2, data);
+
+		for(int i = 0; i < MAX_SUBSRIBER_SIZE; i++)
 		{
-			if (instruction == INS_REQ_TOPIC) responseTopic();
-		}
-		else
-		{
-			rx->tail = (rx->tail + len) % rx->size;
-			rx->count -= len;
-			return -2;
+			if(subscriberList[i].id == id){
+				subscriberList[i].callback((void*)data);
+			}
 		}
 	}
 
@@ -244,9 +273,14 @@ void yRosSerial_spin()
 			if (rx->count >= len)
 			{
 //                RingBuffer_popCopy(rx, bufferMessage, len);
-				processIncomingMessage(rx, len);
-				state = GET_HEADER1;
-				len = 0;
+				// process directly from ring buffer for more efficient process
+				uint8_t x[256];
+				memcpy(x, rx->buffer, 256);
+				if(!processIncomingMessage(rx, len))
+				{
+					state = GET_HEADER1;
+					len = 0;
+				}
 			}
 			else
 			{
@@ -278,7 +312,7 @@ yRosSerial_pubHandle_t* yRosSerial_advertise(const char *topicName, yRosSerial_M
 	return NULL;
 }
 
-void yRosSerial_subscribe(const char* topicName, yRosSerial_MessageType_t mType, Callback_t callback)
+yRosSerial_subHandle_t* yRosSerial_subscribe(const char* topicName, yRosSerial_MessageType_t mType, Callback_t callback)
 {
 	for (int i = 0; i < MAX_SUBSRIBER_SIZE; i++)
 	{
@@ -288,9 +322,11 @@ void yRosSerial_subscribe(const char* topicName, yRosSerial_MessageType_t mType,
 			subscriberList[i].name = topicName;
 			subscriberList[i].type = mType;
 			subscriberList[i].callback = callback;
-			return;
+			return &subscriberList[i];
 		}
 	}
+
+	return NULL;
 }
 
 void yRosSerial_publish(yRosSerial_pubHandle_t* hpub, void* message)
