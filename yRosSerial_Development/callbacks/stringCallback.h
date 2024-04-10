@@ -5,13 +5,13 @@
  *      Author: yp7
  */
 
-#ifndef SUB1CALLBACK_H_
-#define SUB1CALLBACK_H_
+#ifndef STRINGCALLBACK_H_
+#define STRINGCALLBACK_H_
 #include <stdio.h>
 
-void sub1(void *message)
+void stringCallback(void *message)
 {
 	printf("%s\n", (uint8_t*)message);
 }
 
-#endif /* SUB1CALLBACK_H_ */
+#endif /* STRINGCALLBACK_H_ */

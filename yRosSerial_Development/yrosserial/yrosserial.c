@@ -140,7 +140,7 @@ static int processIncomingMessage(RingBuffer_t *rb, size_t len)
 {
 	uint8_t *b = rb->buffer;
 	uint16_t t = rb->tail;
-//	uint16_t bz = rb->size; // buffer size
+	uint16_t bz = rb->size; // buffer size
 
 	if (rb->count < len) return -1;
 
@@ -163,11 +163,13 @@ static int processIncomingMessage(RingBuffer_t *rb, size_t len)
 	{
 		int id = b[t]; //topic id
 		uint8_t x[512];
+//		int l = 0;
 
 		memcpy(x, rb->buffer, 256);
-//		int mt = b[(t+1) % bz]; //message_type
+		int mt = b[(t+1) % bz]; //message_type
 //		int i_dt = (t+2) % bz; // index of data
-		uint8_t data[len-1]; // -2 for excluding id and mt + 1 for add a null terminator
+
+		uint8_t data[len-2]; // -2 for excluding id and mt
 		readRingBuffer(rb, 2, len-2, data);
 
 		for(int i = 0; i < MAX_SUBSRIBER_SIZE; i++)

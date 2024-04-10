@@ -22,7 +22,11 @@
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
 #include "yrosserial.h"
-#include "sub1Callback.h"
+#include "stringCallback.h"
+#include "float32Callback.h"
+#include "float64Callback.h"
+#include "odometry2dCallback.h"
+#include "twist2dCallback.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -52,6 +56,10 @@ RingBuffer_t rb;
 int a = 0;
 
 int cnt = 0;
+float f32;
+double f64;
+yRosSerial_odometry2d odometry2d;
+yRosSerial_twist2d twist2d;
 
 //extern RingBuffer_t *rx;
 //extern RingBuffer_t *tx;
@@ -120,10 +128,11 @@ int main(void)
 	yRosSerial_pubHandle_t *pubTest4 = yRosSerial_advertise("/test4", MT_ODOMETRY2D);
 	yRosSerial_pubHandle_t *pubTest5 = yRosSerial_advertise("/test5", MT_TWIST2D);
 
-	yRosSerial_subHandle_t *subTest1 = yRosSerial_subscribe("/sub1", MT_STRING, sub1);
-
-//	yRosSerial_advertise("/test1", MT_STRING);
-//	yRosSerial_advertise("/test2", MT_FLOAT32);
+	yRosSerial_subHandle_t *subTest1 = yRosSerial_subscribe("/subString", MT_STRING, stringCallback);
+	yRosSerial_subHandle_t *subTest2 = yRosSerial_subscribe("/subFloat32", MT_FLOAT32, float32Callback);
+	yRosSerial_subHandle_t *subTest3 = yRosSerial_subscribe("/subFloat64", MT_FLOAT64, float64Callback);
+	yRosSerial_subHandle_t *subTest4 = yRosSerial_subscribe("/subOdometry", MT_ODOMETRY2D, odometry2dCallback);
+	yRosSerial_subHandle_t *subTest5 = yRosSerial_subscribe("/subTwist", MT_TWIST2D, twist2dCallback);
 
 	char bufferMsg[256];
 
