@@ -18,8 +18,8 @@ static uint8_t initialized;
 static uint8_t topicId = 10; // topic Id start from 10
 
 // temporary buffer
-uint8_t rTemp[64];
-uint8_t tTemp[64];
+uint8_t rTemp[128];
+uint8_t tTemp[128];
 
 static int validateChecksum(RingBuffer_t *rb, size_t len)
 {
@@ -28,14 +28,15 @@ static int validateChecksum(RingBuffer_t *rb, size_t len)
 		sum += rb->buffer[(rb->tail + i) % rb->size];
 
 	uint8_t obtainedSum = rb->buffer[(rb->tail + len - 1) % rb->size];
-	if (sum == obtainedSum) printf("Checksum is correct\n");
-	else printf("Checksum get: %d, expected: %d\n", obtainedSum, sum);
+//	if (sum == obtainedSum) printf("Checksum is correct\n");
+//	else printf("Checksum get: %d, expected: %d\n", obtainedSum, sum);
 
 	return (sum == obtainedSum);
 }
-
+int abc = 0;
 static void txFlush()
 {
+	abc++;
 	if (__HAL_UART_GET_FLAG(setting.huart, UART_FLAG_TC))
 	{
 		size_t bytesToFlush = RingBuffer_popCopy(tx, tTemp, sizeof(tTemp));
@@ -54,13 +55,14 @@ void readRingBuffer(RingBuffer_t *rb, uint16_t offset, uint16_t len, void* outpu
 {
 	uint8_t *b = rb->buffer;
 	uint16_t t = rb->tail;
-	if(t + offset + len <= rb->size) memcpy(output, b+offset+t, len);
+	uint16_t bz = rb->size;
+	if(t + offset + len <= bz || t + offset > bz) memcpy(output, b+((offset+t)%bz), len);
 	else
 	{
-		size_t len1 = rb->size - (rb->tail + offset);
+		size_t len1 = bz - (t + offset);
 		size_t len2 = len - len1;
 		memcpy(output, b + t + offset, len1);
-		memcpy((uint8_t*)output + (t + offset), b, len2);
+		memcpy((uint8_t*)output + len1, b, len2);
 	}
 }
 
@@ -98,6 +100,8 @@ void responseTopic()
 		RingBuffer_append(tx, header, sizeof(header));
 		RingBuffer_append(tx, (uint8_t*) &r, r.length); // r.length measure topic name len + null terminator, action, instruction, topic id, and checksum
 		RingBuffer_append(tx, &ack, sizeof(uint8_t));
+		txFlush();
+		HAL_Delay(5);
 	}
 	for(int i = 0; i < MAX_SUBSRIBER_SIZE; i++)
 	{
@@ -130,8 +134,9 @@ void responseTopic()
 		RingBuffer_append(tx, header, sizeof(header));
 		RingBuffer_append(tx, (uint8_t*) &r, r.length); // r.length measure topic name len + null terminator, action, instruction, topic id, and checksum
 		RingBuffer_append(tx, &ack, sizeof(uint8_t));
+		txFlush();
+		HAL_Delay(5);
 	}
-	txFlush();
 }
 
 // rb should be a ring buffer with tail that point to parameter instruction or topicId (packet after length, should be 4th byte)
@@ -155,7 +160,7 @@ static int processIncomingMessage(RingBuffer_t *rb, size_t len)
 	if (b[t] < MAX_INSTRUCTION_VAL) // process instruction
 	{
 		uint8_t instruction = b[t];
-		printf("tail:%d, instruction: %d, len:%d \n", rb->tail, instruction, len);
+//		printf("tail:%d, instruction: %d, len:%d \n", rb->tail, instruction, len);
 		if (instruction == INS_REQ_TOPIC) responseTopic();
 
 	}
@@ -205,15 +210,17 @@ void yRosSerial_init(yRosSerial_setting_t *_setting)
 	HAL_UARTEx_ReceiveToIdle_DMA(setting.huart, rTemp, sizeof(rTemp));
 	__HAL_DMA_DISABLE_IT(setting.hdma_rx, DMA_IT_HT);
 }
-
+uint16_t sizeGet = 0;
 void yRosSerial_handleCompleteReceive(UART_HandleTypeDef *huart, uint16_t size)
 {
 	if (huart == setting.huart)
 	{
+//		if(size > sizeGet) sizeGet = size;
 		RingBuffer_append(rx, rTemp, size);
+//		memset(rTemp, 0, sizeof(rTemp));
 		HAL_UARTEx_ReceiveToIdle_DMA(setting.huart, rTemp, sizeof(rTemp));
 		__HAL_DMA_DISABLE_IT(setting.hdma_rx, DMA_IT_HT);
-		return;
+//		return;
 	}
 }
 
@@ -251,27 +258,27 @@ void yRosSerial_spin()
 		if (state != GET_MESSAGE)
 		{
 			RingBuffer_pop(rx, &data, 1);
-			printf("tail: %d, c: %d, getData: %d\n", rx->tail, rx->count, *data);
+//			printf("tail: %d, c: %d, getData: %d\n", rx->tail, rx->count, *data);
 		}
 		switch (state)
 		{
 		case GET_HEADER1:
-			printf("Checking Header 1\n");
+//			printf("Checking Header 1\n");
 			if (*data == 5) state = GET_HEADER2;
 			break;
 		case GET_HEADER2:
-			printf("Checking Header 2\n");
+//			printf("Checking Header 2\n");
 			if (*data == 9) state = GET_LENGTH;
 			else if (*data == 5) ;         // keep the current state
 			else state = GET_HEADER1;   // reset the state
 			break;
 		case GET_LENGTH:
-			printf("Getting length\n");
+//			printf("Getting length\n");
 			len = *data;
 			state = GET_MESSAGE;
 			break;
 		case GET_MESSAGE:
-			printf("Getting Message\n");
+//			printf("Getting Message\n");
 			if (rx->count >= len)
 			{
 //                RingBuffer_popCopy(rx, bufferMessage, len);
@@ -294,7 +301,7 @@ void yRosSerial_spin()
 
 		if (breakFor) break;
 
-		printf("\n");
+//		printf("\n");
 	}
 }
 

@@ -36,6 +36,8 @@ typedef struct
 {
 	size_t txBufSize;
 	size_t rxBufSize;
+	uint8_t* rx;
+	uint8_t* tx;
 	UART_HandleTypeDef *huart;
 	DMA_HandleTypeDef *hdma_rx;
 } yRosSerial_setting_t;
