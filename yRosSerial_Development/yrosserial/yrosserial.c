@@ -2,6 +2,7 @@
 
 #include "yrosserial.h"
 #include <stdio.h>
+#include <stdlib.h>
 
 #define MAX_MESSAGE_SIZE    128 // maximum message size (Should not be more than buffer size)
 #define MAX_PUBLISHER_SIZE	10
@@ -13,6 +14,7 @@ static yRosSerial_pubHandle_t publisherList[MAX_PUBLISHER_SIZE] = { 0 };
 yRosSerial_subHandle_t subscriberList[MAX_SUBSRIBER_SIZE] = { 0 };
 RingBuffer_t *rx;
 RingBuffer_t *tx;
+Rb2_t rbRx = {0};
 static yRosSerial_setting_t setting = { 0 };
 static uint8_t initialized;
 static uint8_t topicId = 10; // topic Id start from 10
@@ -21,7 +23,7 @@ static uint8_t topicId = 10; // topic Id start from 10
 uint8_t rTemp[128];
 uint8_t tTemp[128];
 
-static int validateChecksum(RingBuffer_t *rb, size_t len)
+static int validateChecksum(Rb2_t *rb, size_t len)
 {
 	uint8_t sum = len;
 	for (int i = 0; i < len - 1; i++)
@@ -141,25 +143,28 @@ void responseTopic()
 
 // rb should be a ring buffer with tail that point to parameter instruction or topicId (packet after length, should be 4th byte)
 // len is the packets length excluding header and length info
-static int processIncomingMessage(RingBuffer_t *rb, size_t len)
+static int processIncomingMessage(Rb2_t *rb, size_t len)
 {
 	uint8_t *b = rb->buffer;
 	uint16_t t = rb->tail;
-	uint16_t bz = rb->size; // buffer size
+//	uint16_t bz = rb->size; // buffer size
+	size_t a = rb2_getAvailable(rb);
 
-	if (rb->count < len) return -1;
+	if (a < len) return -1;
+	if (len == 0) return -2;
 
 	// validate checksum
 	if (!validateChecksum(rb, len))
 	{
-		rx->tail = (rx->tail + len) % rx->size;
-		rx->count -= len;
+		rb->tail = (rb->tail + len) % rb->size;
+//		rx->count -= len;
 		return -2;
 	}
 
 	if (b[t] < MAX_INSTRUCTION_VAL) // process instruction
 	{
-		uint8_t instruction = b[t];
+		uint8_t instruction;
+		rb2_pop(rb, &instruction, 1);
 //		printf("tail:%d, instruction: %d, len:%d \n", rb->tail, instruction, len);
 		if (instruction == INS_REQ_TOPIC) responseTopic();
 
@@ -171,11 +176,13 @@ static int processIncomingMessage(RingBuffer_t *rb, size_t len)
 //		int l = 0;
 
 		memcpy(x, rb->buffer, 256);
-		int mt = b[(t+1) % bz]; //message_type
+//		int mt = b[(t+1) % bz]; //message_type
 //		int i_dt = (t+2) % bz; // index of data
 
 		uint8_t data[len-2]; // -2 for excluding id and mt
-		readRingBuffer(rb, 2, len-2, data);
+		rb2_pop(rb, data, 2); // remove 2 data
+		rb2_pop(rb, data, len-2);
+//		readRingBuffer(rb, 2, len-2, data);
 
 		for(int i = 0; i < MAX_SUBSRIBER_SIZE; i++)
 		{
@@ -191,8 +198,8 @@ static int processIncomingMessage(RingBuffer_t *rb, size_t len)
 		// uint8_t topicId = message[0];
 	}
 
-	rx->count -= len;
-	rx->tail = (rx->tail + len) % rx->size;
+//	rx->count -= len;
+//	rx->tail = (rx->tail + len) % rx->size;
 
 	return 0;
 }
@@ -201,26 +208,35 @@ static int processIncomingMessage(RingBuffer_t *rb, size_t len)
 
 void yRosSerial_init(yRosSerial_setting_t *_setting)
 {
-	rx = RingBuffer_create(_setting->rxBufSize);
+//	rx = RingBuffer_create(_setting->rxBufSize);
 	tx = RingBuffer_create(_setting->txBufSize);
 	memcpy(&setting, _setting, sizeof(yRosSerial_setting_t));
 
+	rbRx.buffer = calloc(_setting->rxBufSize, sizeof(uint8_t));
+	rbRx.hdma = _setting->hdma_rx;
+	rbRx.huart = _setting->huart;
+	rbRx.size = _setting->rxBufSize;
+
 	initialized = 1;
 
-	HAL_UARTEx_ReceiveToIdle_DMA(setting.huart, rTemp, sizeof(rTemp));
+//	HAL_UARTEx_ReceiveToIdle_DMA(setting.huart, rTemp, sizeof(rTemp));
+	HAL_UART_Receive_DMA(rbRx.huart, rbRx.buffer, rbRx.size);
 	__HAL_DMA_DISABLE_IT(setting.hdma_rx, DMA_IT_HT);
 }
 uint16_t sizeGet = 0;
+extern int dma;
+extern DMA_HandleTypeDef hdma_usart2_rx;
+extern UART_HandleTypeDef huart2;
 void yRosSerial_handleCompleteReceive(UART_HandleTypeDef *huart, uint16_t size)
 {
 	if (huart == setting.huart)
 	{
-//		if(size > sizeGet) sizeGet = size;
 		RingBuffer_append(rx, rTemp, size);
-//		memset(rTemp, 0, sizeof(rTemp));
+
 		HAL_UARTEx_ReceiveToIdle_DMA(setting.huart, rTemp, sizeof(rTemp));
 		__HAL_DMA_DISABLE_IT(setting.hdma_rx, DMA_IT_HT);
-//		return;
+
+		return;
 	}
 }
 
@@ -250,42 +266,44 @@ void yRosSerial_spin()
 //    static uint8_t bufferMessage[MAX_MESSAGE_SIZE - 3] = {0}; // It will contain all packet excluding teh header 1, header 2, and length
 	static size_t len = 0;
 	uint8_t breakFor = 0;
+	size_t available = 0;
 
-	while (rx->count > 0)
+	while ((available = rb2_getAvailable(&rbRx)) > 0)
 	{
-		uint8_t *data = NULL;
-		// printf("check rb->count: %d\n", rb->count);
+		uint8_t data = 0;
+		// printf("check a: %d\n", a);
 		if (state != GET_MESSAGE)
 		{
-			RingBuffer_pop(rx, &data, 1);
-//			printf("tail: %d, c: %d, getData: %d\n", rx->tail, rx->count, *data);
+//			RingBuffer_pop(rx, &data, 1);
+			rb2_pop(&rbRx, &data, 1);
+//			printf("tail: %d, c: %d, getData: %d\n", rbRx.tail, available, data);
 		}
 		switch (state)
 		{
 		case GET_HEADER1:
 //			printf("Checking Header 1\n");
-			if (*data == 5) state = GET_HEADER2;
+			if (data == 5) state = GET_HEADER2;
 			break;
 		case GET_HEADER2:
 //			printf("Checking Header 2\n");
-			if (*data == 9) state = GET_LENGTH;
-			else if (*data == 5) ;         // keep the current state
+			if (data == 9) state = GET_LENGTH;
+			else if (data == 5) ;         // keep the current state
 			else state = GET_HEADER1;   // reset the state
 			break;
 		case GET_LENGTH:
 //			printf("Getting length\n");
-			len = *data;
+			len = data;
 			state = GET_MESSAGE;
 			break;
 		case GET_MESSAGE:
 //			printf("Getting Message\n");
-			if (rx->count >= len)
+			if (available >= len)
 			{
 //                RingBuffer_popCopy(rx, bufferMessage, len);
 				// process directly from ring buffer for more efficient process
-				uint8_t x[256];
-				memcpy(x, rx->buffer, 256);
-				if(!processIncomingMessage(rx, len))
+//				uint8_t x[256];
+//				memcpy(x, rx->buffer, 256);
+				if(!processIncomingMessage(&rbRx, len))
 				{
 					state = GET_HEADER1;
 					len = 0;
@@ -293,7 +311,7 @@ void yRosSerial_spin()
 			}
 			else
 			{
-				printf("Break! rb count: %d\n", rx->count);
+//				printf("Break! rb count: %d\n", available);
 				breakFor = 1;
 			}
 			break;
@@ -501,7 +519,7 @@ void yRosSerial_publish(yRosSerial_pubHandle_t* hpub, void* message)
 
 void yRosSerial_getRxBuffer(uint8_t *buffer)
 {
-	memcpy(buffer, rx->buffer, rx->size);
+	memcpy(buffer, rbRx.buffer, rbRx.size);
 }
 
 void yRosSerial_getTxBuffer(uint8_t *buffer)

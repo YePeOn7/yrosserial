@@ -76,7 +76,9 @@ static void MX_USART2_UART_Init(void);
 
 /* Private user code ---------------------------------------------------------*/
 /* USER CODE BEGIN 0 */
-
+int dma = 0;
+int dmaE = 0;
+int dmaS = 0;
 /* USER CODE END 0 */
 
 /**
@@ -92,7 +94,7 @@ int main(void)
   /* MCU Configuration--------------------------------------------------------*/
 
   /* Reset of all peripherals, Initializes the Flash interface and the Systick. */
-  HAL_Init();
+	HAL_Init();
 
   /* USER CODE BEGIN Init */
 
@@ -115,6 +117,8 @@ int main(void)
 
   /* Infinite loop */
   /* USER CODE BEGIN WHILE */
+	HAL_UART_DeInit(&huart2);
+	HAL_UART_Init(&huart2);
 	yRosSerial_setting_t rosSerialSetting;
 	rosSerialSetting.rxBufSize = 256;
 	rosSerialSetting.txBufSize = 256;
@@ -146,6 +150,7 @@ int main(void)
 	yRosSerial_twist2d twistMsg = { 0 };
 
 	strMsg.data = bufferMsg;
+
 	while (1)
 	{
     /* USER CODE END WHILE */
@@ -170,14 +175,16 @@ int main(void)
 		twistMsg.y += 2;
 		twistMsg.w += 3;
 
-//		yRosSerial_getRxBuffer(r); //only for checking memory from Debug
+		yRosSerial_getRxBuffer(r); //only for checking memory from Debug
 //		yRosSerial_getTxBuffer(t); //only for checking memory from Debug
 //		check();
 
 		yRosSerial_spin();
-
+//		dma = HAL_DMA_GetState(&hdma_usart2_rx);
 //		while(cnt > 1013);
 //		a = yRosSerial_getTxCount();
+		dmaE = HAL_DMA_GetError(&hdma_usart2_rx);
+		dmaS = HAL_UART_GetState(&huart2);
 		HAL_Delay(10);
 	}
   /* USER CODE END 3 */
@@ -327,15 +334,19 @@ static void MX_GPIO_Init(void)
 }
 
 /* USER CODE BEGIN 4 */
-void HAL_UARTEx_RxEventCallback(UART_HandleTypeDef *huart, uint16_t Size)
-{
-	yRosSerial_handleCompleteReceive(huart, Size);
-}
+//void HAL_UARTEx_RxEventCallback(UART_HandleTypeDef *huart, uint16_t Size)
+//{
+//	yRosSerial_handleCompleteReceive(huart, Size);
+////	HAL_Delay(1);
+//}
+
+
 
 void HAL_UART_TxCpltCallback(UART_HandleTypeDef *huart)
 {
 	yRosSerial_handleCompleteTransmit(huart);
 }
+
 
 int _write(int file, char *ptr, int len)
 {

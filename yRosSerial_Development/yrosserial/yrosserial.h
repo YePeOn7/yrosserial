@@ -5,6 +5,7 @@
 #include <stdio.h>
 
 #include "ringBuffer.h"
+#include "rb2.h"
 #include "yRosSerial_mt.h"
 #include "main.h" // from the project
 
