@@ -6,8 +6,8 @@
 #include <stdlib.h>
 
 #define MAX_MESSAGE_SIZE    128 // maximum message size (Should not be more than buffer size)
-#define MAX_PUBLISHER_SIZE	10
-#define MAX_SUBSRIBER_SIZE	10
+#define MAX_PUBLISHER_SIZE	20
+#define MAX_SUBSRIBER_SIZE	20
 #define HEADER				{0x05, 0x09}
 #define MAX_INSTRUCTION_VAL	10
 
@@ -510,6 +510,57 @@ void yRosSerial_publish(yRosSerial_pubHandle_t* hpub, void* message)
 //			printf("%d ", ((uint8_t*)msg)[i]);
 //		}
 //		printf("%d\n", checksum);
+	}
+	else if(hpub->type == MT_UINT8_MULTIARRAY ||
+			hpub->type == MT_INT8_MULTIARRAY ||
+			hpub->type == MT_UINT16_MULTIARRAY ||
+			hpub->type == MT_INT16_MULTIARRAY ||
+			hpub->type == MT_UINT32_MULTIARRAY ||
+			hpub->type == MT_INT32_MULTIARRAY ||
+			hpub->type == MT_UINT64_MULTIARRAY ||
+			hpub->type == MT_INT64_MULTIARRAY ||
+			hpub->type == MT_FLOAT32_MULTIARRAY ||
+			hpub->type == MT_FLOAT64_MULTIARRAY)
+	{
+		yRosSerial_uint8mul_t* msg = (yRosSerial_uint8mul_t*) message;
+		size_t s = 0; //to handle size for single array
+		switch(hpub->type)
+		{
+		case MT_UINT8_MULTIARRAY:
+		case MT_INT8_MULTIARRAY: s = 1; break;
+		case MT_UINT16_MULTIARRAY:
+		case MT_INT16_MULTIARRAY: s = 2; break;
+		case MT_UINT32_MULTIARRAY:
+		case MT_INT32_MULTIARRAY:
+		case MT_FLOAT32_MULTIARRAY: s = 4; break;
+		case MT_UINT64_MULTIARRAY:
+		case MT_INT64_MULTIARRAY:
+		case MT_FLOAT64_MULTIARRAY: s = 8; break;
+		default: break;
+		}
+		size_t ls = sizeof(msg->length);
+
+		size_t msgSize = s * msg->length + ls;
+		messageBase.length = msgSize + 3; //additional: topicId, Message type, checksum
+
+		uint8_t m[msgSize];
+		memcpy(m, &msg->length, ls);
+		memcpy(m+ls, msg->data, msg->length * s);
+
+		// generate checksum
+		uint8_t checksum = 0;
+		checksum += messageBase.length;
+		checksum += messageBase.topicId;
+		checksum += messageBase.type;
+		for(int i = 0; i < msgSize; i++)
+		{
+			checksum += m[i];
+		}
+
+		RingBuffer_append(tx, header, sizeof(header));
+		RingBuffer_append(tx, (uint8_t*)&messageBase, sizeof(messageBase));
+		RingBuffer_append(tx, m, msgSize);
+		RingBuffer_append(tx, &checksum, sizeof(uint8_t));
 	}
 	txFlush();
 }

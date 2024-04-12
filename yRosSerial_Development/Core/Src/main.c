@@ -50,6 +50,8 @@ DMA_HandleTypeDef hdma_usart2_rx;
 DMA_HandleTypeDef hdma_usart2_tx;
 
 /* USER CODE BEGIN PV */
+#define L_ARRAY 20
+
 uint8_t r[256] = { 0 };
 uint8_t t[256] = { 0 };
 RingBuffer_t rb;
@@ -134,6 +136,16 @@ int main(void)
 	yRosSerial_pubHandle_t *pubTest3 = yRosSerial_advertise("/test3", MT_FLOAT64);
 	yRosSerial_pubHandle_t *pubTest4 = yRosSerial_advertise("/test4", MT_ODOMETRY2D);
 	yRosSerial_pubHandle_t *pubTest5 = yRosSerial_advertise("/test5", MT_TWIST2D);
+	yRosSerial_pubHandle_t *pubU8M = yRosSerial_advertise("/pub_u8m", MT_UINT8_MULTIARRAY);
+	yRosSerial_pubHandle_t *pubS8M = yRosSerial_advertise("/pub_s8m", MT_INT8_MULTIARRAY);
+	yRosSerial_pubHandle_t *pubU16M = yRosSerial_advertise("/pub_u16m", MT_UINT16_MULTIARRAY);
+	yRosSerial_pubHandle_t *pubS16M = yRosSerial_advertise("/pub_s16m", MT_INT16_MULTIARRAY);
+	yRosSerial_pubHandle_t *pubU32M = yRosSerial_advertise("/pub_u32m", MT_UINT32_MULTIARRAY);
+	yRosSerial_pubHandle_t *pubS32M = yRosSerial_advertise("/pub_s32m", MT_INT32_MULTIARRAY);
+	yRosSerial_pubHandle_t *pubU64M = yRosSerial_advertise("/pub_u64m", MT_UINT64_MULTIARRAY);
+	yRosSerial_pubHandle_t *pubS64M = yRosSerial_advertise("/pub_s64m", MT_INT64_MULTIARRAY);
+	yRosSerial_pubHandle_t *pubF32M = yRosSerial_advertise("/pub_f32m", MT_FLOAT32_MULTIARRAY);
+	yRosSerial_pubHandle_t *pubF64M = yRosSerial_advertise("/pub_f64m", MT_FLOAT64_MULTIARRAY);
 
 	yRosSerial_subHandle_t *subTest1 = yRosSerial_subscribe("/subString", MT_STRING, stringCallback);
 	yRosSerial_subHandle_t *subTest2 = yRosSerial_subscribe("/subFloat32", MT_FLOAT32, float32Callback);
@@ -151,6 +163,70 @@ int main(void)
 	yRosSerial_twist2d_t twistMsg = { 0 };
 
 	strMsg.data = bufferMsg;
+
+	uint8_t u8mData[L_ARRAY];
+	yRosSerial_uint8mul_t u8mMsg = { 0 };
+	u8mMsg.data = u8mData;
+	u8mMsg.length = L_ARRAY;
+
+	int8_t s8mData[L_ARRAY];
+	yRosSerial_int8mul_t s8mMsg = { 0 };
+	s8mMsg.data = s8mData;
+	s8mMsg.length = L_ARRAY;
+
+	uint16_t u16mData[L_ARRAY];
+	yRosSerial_uint16mul_t u16mMsg = { 0 };
+	u16mMsg.data = u16mData;
+	u16mMsg.length = L_ARRAY;
+
+	int16_t s16mData[L_ARRAY];
+	yRosSerial_int16mul_t s16mMsg = { 0 };
+	s16mMsg.data = s16mData;
+	s16mMsg.length = L_ARRAY;
+
+	uint32_t u32mData[L_ARRAY];
+	yRosSerial_uint32mul_t u32mMsg = { 0 };
+	u32mMsg.data = u32mData;
+	u32mMsg.length = L_ARRAY;
+
+	int32_t s32mData[L_ARRAY];
+	yRosSerial_int32mul_t s32mMsg = { 0 };
+	s32mMsg.data = s32mData;
+	s32mMsg.length = L_ARRAY;
+
+	uint64_t u64mData[L_ARRAY];
+	yRosSerial_uint64mul_t u64mMsg = { 0 };
+	u64mMsg.data = u64mData;
+	u64mMsg.length = L_ARRAY;
+
+	int64_t s64mData[L_ARRAY];
+	yRosSerial_int64mul_t s64mMsg = { 0 };
+	s64mMsg.data = s64mData;
+	s64mMsg.length = L_ARRAY;
+
+	float f32mData[L_ARRAY];
+	yRosSerial_float32mul_t f32mMsg = { 0 };
+	f32mMsg.data = f32mData;
+	f32mMsg.length = L_ARRAY;
+
+	double f64mData[L_ARRAY];
+	yRosSerial_float64mul_t f64mMsg = { 0 };
+	f64mMsg.data = f64mData;
+	f64mMsg.length = L_ARRAY;
+
+	for(int i = 0; i < L_ARRAY; i++)
+	{
+		u8mData[i] = i;
+		s8mData[i] = i;
+		u16mData[i] = i;
+		s16mData[i] = i;
+		u32mData[i] = i;
+		s32mData[i] = i;
+		u64mData[i] = i;
+		s64mData[i] = i;
+		f32mData[i] = i;
+		f64mData[i] = i;
+	}
 
 	while (1)
 	{
@@ -176,6 +252,31 @@ int main(void)
 		twistMsg.y += 2;
 		twistMsg.w += 3;
 
+		yRosSerial_publish(pubU8M, &u8mMsg); HAL_Delay(1);
+		yRosSerial_publish(pubS8M, &s8mMsg);  HAL_Delay(1);
+		yRosSerial_publish(pubU16M, &u16mMsg); HAL_Delay(1);
+		yRosSerial_publish(pubS16M, &s16mMsg); HAL_Delay(1);
+		yRosSerial_publish(pubU32M, &u32mMsg); HAL_Delay(1);
+		yRosSerial_publish(pubS32M, &s32mMsg); HAL_Delay(1);
+		yRosSerial_publish(pubU64M, &u64mMsg); HAL_Delay(1);
+		yRosSerial_publish(pubS64M, &s64mMsg); HAL_Delay(1);
+		yRosSerial_publish(pubF32M, &f32mMsg); HAL_Delay(1);
+		yRosSerial_publish(pubF64M, &f64mMsg); HAL_Delay(1);
+
+		for(int i = 0; i < L_ARRAY; i++)
+		{
+			u8mData[i]++;
+			s8mData[i]--;
+			u16mData[i]++;
+			s16mData[i]--;
+			u32mData[i]++;
+			s32mData[i]--;
+			u64mData[i]++;
+			s64mData[i]--;
+			f32mData[i] += 1;
+			f64mData[i] -= 1;
+		}
+
 		yRosSerial_getRxBuffer(r); //only for checking memory from Debug
 //		yRosSerial_getTxBuffer(t); //only for checking memory from Debug
 		a = rb2_getAvailable(&rbRx);
@@ -187,7 +288,7 @@ int main(void)
 //		a = yRosSerial_getTxCount();
 		dmaE = HAL_DMA_GetError(&hdma_usart2_rx);
 		dmaS = HAL_UART_GetState(&huart2);
-		HAL_Delay(10);
+		HAL_Delay(100);
 	}
   /* USER CODE END 3 */
 }
