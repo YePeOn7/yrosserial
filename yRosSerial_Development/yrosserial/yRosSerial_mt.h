@@ -108,61 +108,61 @@ typedef struct
 
 typedef struct
 {
-	uint8_t *data;
 	uint16_t length;
+	uint8_t *data;
 }yRosSerial_uint8mul_t;
 
 typedef struct
 {
-	int8_t *data;
 	uint16_t length;
+	int8_t *data;
 }yRosSerial_int8mul_t;
 
 typedef struct
 {
-	uint16_t *data;
 	uint16_t length;
+	uint16_t *data;
 }yRosSerial_uint16mul_t;
 
 typedef struct
 {
-	int16_t *data;
 	uint16_t length;
+	int16_t *data;
 }yRosSerial_int16mul_t;
 
 typedef struct
 {
-	uint32_t *data;
 	uint16_t length;
+	uint32_t *data;
 }yRosSerial_uint32mul_t;
 
 typedef struct
 {
-	int32_t *data;
 	uint16_t length;
+	int32_t *data;
 }yRosSerial_int32mul_t;
 
 typedef struct
 {
-	uint64_t *data;
 	uint16_t length;
+	uint64_t *data;
 }yRosSerial_uint64mul_t;
 
 typedef struct
 {
-	int64_t *data;
 	uint16_t length;
+	int64_t *data;
 }yRosSerial_int64mul_t;
 
 typedef struct
 {
-	float *data;
 	uint16_t length;
+	float *data;
 }yRosSerial_float32mul_t;
 
 typedef struct
 {
-	double *data;
 	uint16_t length;
+	double *data;
 }yRosSerial_float64mul_t;
 #endif /* YROSSERIAL_MT_H_ */
