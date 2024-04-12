@@ -6,8 +6,8 @@
 #include <stdlib.h>
 
 #define MAX_MESSAGE_SIZE    128 // maximum message size (Should not be more than buffer size)
-#define MAX_PUBLISHER_SIZE	20
-#define MAX_SUBSRIBER_SIZE	20
+#define MAX_PUBLISHER_SIZE	30
+#define MAX_SUBSRIBER_SIZE	30
 #define HEADER				{0x05, 0x09}
 #define MAX_INSTRUCTION_VAL	10
 
@@ -383,70 +383,6 @@ void yRosSerial_publish(yRosSerial_pubHandle_t* hpub, void* message)
 //		printf("%s (%d)\n", strMsg->data, messageBase.length);
 		memcpy(t, tx->buffer, 256);
 	}
-	else if(hpub->type == MT_FLOAT32)
-	{
-		yRosSerial_float32_t* msg = (yRosSerial_float32_t*) message;
-		size_t msgSize = sizeof(yRosSerial_float32_t);
-		messageBase.length = msgSize+ 3; //additional: topicId, Message type, checksum
-
-		// generate checksum
-		uint8_t checksum = messageBase.length;
-		checksum += hpub->id;
-		checksum += hpub->type;
-		for(int i = 0; i < msgSize; i++)
-		{
-			checksum += ((uint8_t*)msg)[i];
-		}
-
-		RingBuffer_append(tx, header, sizeof(header));
-		RingBuffer_append(tx, (uint8_t*)&messageBase, sizeof(messageBase));
-		RingBuffer_append(tx, (uint8_t*)msg, msgSize);
-		RingBuffer_append(tx, &checksum, sizeof(uint8_t));
-//		printf("float ==> data: %.3f\n", msg->data);
-
-//		for(int i = 0; i < sizeof(messageBase); i++)
-//		{
-//			printf("%d ", ((uint8_t*)&messageBase)[i]);
-//		}
-//
-//		for(int i = 0; i < msgSize; i++)
-//		{
-//			printf("%d ", ((uint8_t*)msg)[i]);
-//		}
-//		printf("%d\n", checksum);
-	}
-	else if(hpub->type == MT_FLOAT64)
-	{
-		yRosSerial_float64_t* msg = (yRosSerial_float64_t*) message;
-		size_t msgSize = sizeof(yRosSerial_float64_t);
-		messageBase.length = msgSize+ 3; //additional: topicId, Message type, checksum
-
-		// generate checksum
-		uint8_t checksum = messageBase.length;
-		checksum += hpub->id;
-		checksum += hpub->type;
-		for(int i = 0; i < msgSize; i++)
-		{
-			checksum += ((uint8_t*)msg)[i];
-		}
-
-		RingBuffer_append(tx, header, sizeof(header));
-		RingBuffer_append(tx, (uint8_t*)&messageBase, sizeof(messageBase));
-		RingBuffer_append(tx, (uint8_t*)msg, msgSize);
-		RingBuffer_append(tx, &checksum, sizeof(uint8_t));
-//		printf("float ==> data: %.3f\n", msg->data);
-
-//		for(int i = 0; i < sizeof(messageBase); i++)
-//		{
-//			printf("%d ", ((uint8_t*)&messageBase)[i]);
-//		}
-//
-//		for(int i = 0; i < msgSize; i++)
-//		{
-//			printf("%d ", ((uint8_t*)msg)[i]);
-//		}
-//		printf("%d\n", checksum);
-	}
 	else if(hpub->type == MT_ODOMETRY2D)
 	{
 		yRosSerial_odometry2d_t* msg = (yRosSerial_odometry2d_t*) message;
@@ -560,6 +496,47 @@ void yRosSerial_publish(yRosSerial_pubHandle_t* hpub, void* message)
 		RingBuffer_append(tx, header, sizeof(header));
 		RingBuffer_append(tx, (uint8_t*)&messageBase, sizeof(messageBase));
 		RingBuffer_append(tx, m, msgSize);
+		RingBuffer_append(tx, &checksum, sizeof(uint8_t));
+	}
+	else if(hpub->type == MT_UINT8 ||
+			hpub->type == MT_INT8 ||
+			hpub->type == MT_UINT16 ||
+			hpub->type == MT_INT16 ||
+			hpub->type == MT_UINT32 ||
+			hpub->type == MT_INT32 ||
+			hpub->type == MT_UINT64 ||
+			hpub->type == MT_INT64 ||
+			hpub->type == MT_FLOAT32 ||
+			hpub->type == MT_FLOAT64)
+	{
+		size_t s = 0; //to handle size of message
+		switch(hpub->type)
+		{
+		case MT_UINT8:
+		case MT_INT8: s = 1; break;
+		case MT_UINT16:
+		case MT_INT16: s = 2; break;
+		case MT_UINT32:
+		case MT_INT32:
+		case MT_FLOAT32: s = 4; break;
+		case MT_UINT64:
+		case MT_INT64:
+		case MT_FLOAT64: s = 8; break;
+		default: break;
+		}
+
+		messageBase.length = s + 3; //additional: topicId, Message type, checksum
+
+		// generate checksum
+		uint8_t checksum = 0;
+		checksum += messageBase.length;
+		checksum += messageBase.topicId;
+		checksum += messageBase.type;
+		for(int i = 0; i < s; i++) checksum += ((uint8_t*)message)[i];
+
+		RingBuffer_append(tx, header, sizeof(header));
+		RingBuffer_append(tx, (uint8_t*)&messageBase, sizeof(messageBase));
+		RingBuffer_append(tx, (uint8_t*)message, s);
 		RingBuffer_append(tx, &checksum, sizeof(uint8_t));
 	}
 	txFlush();

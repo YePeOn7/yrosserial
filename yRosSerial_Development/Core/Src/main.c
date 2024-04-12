@@ -131,11 +131,9 @@ int main(void)
 	rosSerialSetting.hdma_rx = &hdma_usart2_rx;
 	yRosSerial_init(&rosSerialSetting);
 
-	yRosSerial_pubHandle_t *pubTest1 = yRosSerial_advertise("/test1", MT_STRING);
-	yRosSerial_pubHandle_t *pubTest2 = yRosSerial_advertise("/test2", MT_FLOAT32);
-	yRosSerial_pubHandle_t *pubTest3 = yRosSerial_advertise("/test3", MT_FLOAT64);
-	yRosSerial_pubHandle_t *pubTest4 = yRosSerial_advertise("/test4", MT_ODOMETRY2D);
-	yRosSerial_pubHandle_t *pubTest5 = yRosSerial_advertise("/test5", MT_TWIST2D);
+	yRosSerial_pubHandle_t *pubTest1 = yRosSerial_advertise("/pub_string", MT_STRING);
+	yRosSerial_pubHandle_t *pubTest4 = yRosSerial_advertise("/pub_odometry", MT_ODOMETRY2D);
+	yRosSerial_pubHandle_t *pubTest5 = yRosSerial_advertise("/pub_twist", MT_TWIST2D);
 	yRosSerial_pubHandle_t *pubU8M = yRosSerial_advertise("/pub_u8m", MT_UINT8_MULTIARRAY);
 	yRosSerial_pubHandle_t *pubS8M = yRosSerial_advertise("/pub_s8m", MT_INT8_MULTIARRAY);
 	yRosSerial_pubHandle_t *pubU16M = yRosSerial_advertise("/pub_u16m", MT_UINT16_MULTIARRAY);
@@ -147,6 +145,17 @@ int main(void)
 	yRosSerial_pubHandle_t *pubF32M = yRosSerial_advertise("/pub_f32m", MT_FLOAT32_MULTIARRAY);
 	yRosSerial_pubHandle_t *pubF64M = yRosSerial_advertise("/pub_f64m", MT_FLOAT64_MULTIARRAY);
 
+	yRosSerial_pubHandle_t *pubU8 = yRosSerial_advertise("/pub_u8", MT_UINT8);
+	yRosSerial_pubHandle_t *pubS8 = yRosSerial_advertise("/pub_s8", MT_INT8);
+	yRosSerial_pubHandle_t *pubU16 = yRosSerial_advertise("/pub_u16", MT_UINT16);
+	yRosSerial_pubHandle_t *pubS16 = yRosSerial_advertise("/pub_s16", MT_INT16);
+	yRosSerial_pubHandle_t *pubU32 = yRosSerial_advertise("/pub_u32", MT_UINT32);
+	yRosSerial_pubHandle_t *pubS32 = yRosSerial_advertise("/pub_s32", MT_INT32);
+	yRosSerial_pubHandle_t *pubU64 = yRosSerial_advertise("/pub_u64", MT_UINT64);
+	yRosSerial_pubHandle_t *pubS64 = yRosSerial_advertise("/pub_s64", MT_INT64);
+	yRosSerial_pubHandle_t *pubF32 = yRosSerial_advertise("/pub_f32", MT_FLOAT32);
+	yRosSerial_pubHandle_t *pubF64 = yRosSerial_advertise("/pub_f64", MT_FLOAT64);
+
 	yRosSerial_subHandle_t *subTest1 = yRosSerial_subscribe("/subString", MT_STRING, stringCallback);
 	yRosSerial_subHandle_t *subTest2 = yRosSerial_subscribe("/subFloat32", MT_FLOAT32, float32Callback);
 	yRosSerial_subHandle_t *subTest3 = yRosSerial_subscribe("/subFloat64", MT_FLOAT64, float64Callback);
@@ -157,10 +166,19 @@ int main(void)
 
 	// message that will be used to publish the data to the topics
 	yRosSerial_string_t strMsg = { 0 };
-	yRosSerial_float32_t float32Msg = { 0 };
-	yRosSerial_float64_t float64Msg = { 0 };
 	yRosSerial_odometry2d_t odometryMsg = { 0 };
 	yRosSerial_twist2d_t twistMsg = { 0 };
+
+	yRosSerial_uint8_t u8Msg = { 0 };
+	yRosSerial_int8_t s8Msg = { 0 };
+	yRosSerial_uint16_t u16Msg = { 0 };
+	yRosSerial_int16_t s16Msg = { 0 };
+	yRosSerial_uint32_t u32Msg = { 0 };
+	yRosSerial_int32_t s32Msg = { 0 };
+	yRosSerial_uint64_t u64Msg = { 0 };
+	yRosSerial_int64_t s64Msg = { 0 };
+	yRosSerial_float32_t f32Msg = { 0 };
+	yRosSerial_float64_t f64Msg = { 0 };
 
 	strMsg.data = bufferMsg;
 
@@ -236,11 +254,8 @@ int main(void)
 		sprintf(bufferMsg, "Hi.... Yoyoyoyo.... From Pub1 (%d)", cnt++);
 		yRosSerial_publish(pubTest1, &strMsg);
 
-		yRosSerial_publish(pubTest2, &float32Msg);
-		float32Msg.data += 0.1;
-
-		yRosSerial_publish(pubTest3, &float64Msg);
-		float64Msg.data += 0.1;
+		yRosSerial_publish(pubF32, &f32Msg);
+		yRosSerial_publish(pubF64, &f64Msg);
 
 		yRosSerial_publish(pubTest4, &odometryMsg);
 		odometryMsg.x += 0.01;
@@ -263,6 +278,15 @@ int main(void)
 		yRosSerial_publish(pubF32M, &f32mMsg); HAL_Delay(1);
 		yRosSerial_publish(pubF64M, &f64mMsg); HAL_Delay(1);
 
+		yRosSerial_publish(pubU8, &u8Msg);
+		yRosSerial_publish(pubS8, &s8Msg);
+		yRosSerial_publish(pubU16, &u16Msg);
+		yRosSerial_publish(pubS16, &s16Msg);
+		yRosSerial_publish(pubU32, &u32Msg);
+		yRosSerial_publish(pubS32, &s32Msg);
+		yRosSerial_publish(pubU64, &u64Msg);
+		yRosSerial_publish(pubS64, &s64Msg);
+
 		for(int i = 0; i < L_ARRAY; i++)
 		{
 			u8mData[i]++;
@@ -276,6 +300,17 @@ int main(void)
 			f32mData[i] += 1;
 			f64mData[i] -= 1;
 		}
+
+		u8Msg.data++;
+		s8Msg.data--;
+		u16Msg.data++;
+		s16Msg.data--;
+		u32Msg.data++;
+		s32Msg.data--;
+		u64Msg.data++;
+		s64Msg.data--;
+		f32Msg.data += 0.1;
+		f64Msg.data -= 0.1;
 
 		yRosSerial_getRxBuffer(r); //only for checking memory from Debug
 //		yRosSerial_getTxBuffer(t); //only for checking memory from Debug
