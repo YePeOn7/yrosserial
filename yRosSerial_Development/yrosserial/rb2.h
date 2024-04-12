@@ -9,7 +9,6 @@
 #define RB2_H_
 
 #include "main.h"
-#include <string.h>
 
 typedef struct{
 	uint8_t *buffer;

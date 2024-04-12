@@ -284,7 +284,7 @@ void yRosSerial_spin()
 	static int state = GET_HEADER1;
 //    static uint8_t bufferMessage[MAX_MESSAGE_SIZE - 3] = {0}; // It will contain all packet excluding teh header 1, header 2, and length
 	static size_t len = 0;
-	static skipCount = 0;
+	static int skipCount = 0;
 	uint8_t breakFor = 0;
 	size_t available = 0;
 

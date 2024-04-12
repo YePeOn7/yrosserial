@@ -2,7 +2,6 @@
 #define __RING_BUFFER_H__
 
 #include <stdint.h>
-#include <stdio.h>
 
 typedef struct
 {

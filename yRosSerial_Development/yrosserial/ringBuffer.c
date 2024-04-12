@@ -1,5 +1,6 @@
 #include <stdlib.h>
 #include <string.h>
+#include <stdio.h>
 #include "ringBuffer.h"
 #define RING_BUFFER_LOG_ENABLE  1
 
