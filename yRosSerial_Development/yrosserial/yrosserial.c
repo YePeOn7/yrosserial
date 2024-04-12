@@ -166,7 +166,6 @@ static int processIncomingMessage(Rb2_t *rb, size_t len)
 {
 	uint8_t *b = rb->buffer;
 	uint16_t t = rb->tail;
-//	uint16_t bz = rb->size; // buffer size
 	size_t a = rb2_getAvailable(rb);
 
 	if (a < len) return -1;
@@ -177,7 +176,6 @@ static int processIncomingMessage(Rb2_t *rb, size_t len)
 	{
 		rb->tail = (rb->tail + len) % rb->size;
 		rb->count = rb2_getAvailable(rb);
-//		rx->count -= len;
 		return -2;
 	}
 
@@ -193,16 +191,12 @@ static int processIncomingMessage(Rb2_t *rb, size_t len)
 	{
 		int id = b[t]; //topic id
 		uint8_t x[512];
-//		int l = 0;
 
 		memcpy(x, rb->buffer, 256);
-//		int mt = b[(t+1) % bz]; //message_type
-//		int i_dt = (t+2) % bz; // index of data
 
 		uint8_t data[len-2]; // -2 for excluding id and mt
 		rb2_pop(rb, data, 2); // remove 2 data
 		rb2_pop(rb, data, len-2);
-//		readRingBuffer(rb, 2, len-2, data);
 
 		for(int i = 0; i < MAX_SUBSRIBER_SIZE; i++)
 		{
@@ -212,22 +206,12 @@ static int processIncomingMessage(Rb2_t *rb, size_t len)
 		}
 	}
 
-	// Topic Id
-	else
-	{
-		// uint8_t topicId = message[0];
-	}
-
-//	rx->count -= len;
-//	rx->tail = (rx->tail + len) % rx->size;
-
 	return 0;
 }
 
 //------------------ Interface Implementation --------------- //
 void yRosSerial_init(yRosSerial_setting_t *_setting)
 {
-//	rx = RingBuffer_create(_setting->rxBufSize);
 	tx = RingBuffer_create(_setting->txBufSize);
 	memcpy(&setting, _setting, sizeof(yRosSerial_setting_t));
 
@@ -238,14 +222,10 @@ void yRosSerial_init(yRosSerial_setting_t *_setting)
 
 	initialized = 1;
 
-//	HAL_UARTEx_ReceiveToIdle_DMA(setting.huart, rTemp, sizeof(rTemp));
 	HAL_UART_Receive_DMA(rbRx.huart, rbRx.buffer, rbRx.size);
 	__HAL_DMA_DISABLE_IT(setting.hdma_rx, DMA_IT_HT);
 }
-uint16_t sizeGet = 0;
-extern int dma;
-extern DMA_HandleTypeDef hdma_usart2_rx;
-extern UART_HandleTypeDef huart2;
+
 void yRosSerial_handleCompleteReceive(UART_HandleTypeDef *huart, uint16_t size)
 {
 	if (huart == setting.huart)
@@ -282,7 +262,6 @@ void yRosSerial_spin()
 	};
 
 	static int state = GET_HEADER1;
-//    static uint8_t bufferMessage[MAX_MESSAGE_SIZE - 3] = {0}; // It will contain all packet excluding teh header 1, header 2, and length
 	static size_t len = 0;
 	static int skipCount = 0;
 	uint8_t breakFor = 0;
@@ -294,7 +273,6 @@ void yRosSerial_spin()
 		// printf("check a: %d\n", a);
 		if (state != GET_MESSAGE)
 		{
-//			RingBuffer_pop(rx, &data, 1);
 			rb2_pop(&rbRx, &data, 1);
 //			printf("tail: %d, c: %d, getData: %d\n", rbRx.tail, available, data);
 		}
@@ -319,15 +297,6 @@ void yRosSerial_spin()
 //			printf("Getting Message\n");
 			if (available >= len)
 			{
-//                RingBuffer_popCopy(rx, bufferMessage, len);
-				// process directly from ring buffer for more efficient process
-//				uint8_t x[256];
-//				memcpy(x, rx->buffer, 256);
-//				if(!processIncomingMessage(&rbRx, len))
-//				{
-//					state = GET_HEADER1;
-//					len = 0;
-//				}
 				processIncomingMessage(&rbRx, len);
 				state = GET_HEADER1;
 				len = 0;
@@ -405,7 +374,7 @@ void yRosSerial_publish(yRosSerial_pubHandle_t* hpub, void* message)
 		{
 			checksum += strMsg->data[i];
 		}
-//		size_t l=strlen(strMsg->data);
+
 		// Package packet to Ring Buffer
 		RingBuffer_append(tx, header, sizeof(header));
 		RingBuffer_append(tx, (uint8_t*)&messageBase, sizeof(messageBase));
