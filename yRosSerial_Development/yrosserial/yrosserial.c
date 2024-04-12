@@ -1,3 +1,4 @@
+
 #include <string.h>
 
 #include "yrosserial.h"
@@ -23,6 +24,14 @@ static uint8_t topicId = 10; // topic Id start from 10
 uint8_t rTemp[128];
 uint8_t tTemp[128];
 
+
+/**
+ * @brief To validate the checksum from the received packet
+ * 
+ * @param rb ring buffer parameter that hold the packet
+ * @param len the length of the packet
+ * @return int the status of checksum verification
+ */
 static int validateChecksum(Rb2_t *rb, size_t len)
 {
 	uint8_t sum = len;
@@ -36,6 +45,11 @@ static int validateChecksum(Rb2_t *rb, size_t len)
 	return (sum == obtainedSum);
 }
 int abc = 0;
+
+/**
+ * @brief Sending the data that has been appended to tx ring buffer
+ * 
+ */
 static void txFlush()
 {
 	abc++;
@@ -141,8 +155,13 @@ void responseTopic()
 	}
 }
 
-// rb should be a ring buffer with tail that point to parameter instruction or topicId (packet after length, should be 4th byte)
-// len is the packets length excluding header and length info
+/**
+ * @brief Parsing the incomming message to decide which response to be sent to the client
+ * 
+ * @param rb should be a ring buffer with tail that point to parameter instruction or topicId (packet after length, should be 4th byte)
+ * @param len the packets length excluding header and length info
+ * @return int 
+ */
 static int processIncomingMessage(Rb2_t *rb, size_t len)
 {
 	uint8_t *b = rb->buffer;
@@ -206,7 +225,6 @@ static int processIncomingMessage(Rb2_t *rb, size_t len)
 }
 
 //------------------ Interface Implementation --------------- //
-
 void yRosSerial_init(yRosSerial_setting_t *_setting)
 {
 //	rx = RingBuffer_create(_setting->rxBufSize);
