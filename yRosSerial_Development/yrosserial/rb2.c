@@ -45,6 +45,7 @@ size_t rb2_pop(Rb2_t *rb, uint8_t *out, size_t len)
 		}
 
 		rb->tail = (t + valToPop) % s;
+		rb->count = rb2_getAvailable(rb);
 	}
 
 	return valToPop;

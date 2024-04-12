@@ -50,8 +50,8 @@ DMA_HandleTypeDef hdma_usart2_rx;
 DMA_HandleTypeDef hdma_usart2_tx;
 
 /* USER CODE BEGIN PV */
-uint8_t r[512] = { 0 };
-uint8_t t[512] = { 0 };
+uint8_t r[256] = { 0 };
+uint8_t t[256] = { 0 };
 RingBuffer_t rb;
 int a = 0;
 
@@ -79,6 +79,7 @@ static void MX_USART2_UART_Init(void);
 int dma = 0;
 int dmaE = 0;
 int dmaS = 0;
+extern Rb2_t rbRx;
 /* USER CODE END 0 */
 
 /**
@@ -177,6 +178,7 @@ int main(void)
 
 		yRosSerial_getRxBuffer(r); //only for checking memory from Debug
 //		yRosSerial_getTxBuffer(t); //only for checking memory from Debug
+		a = rb2_getAvailable(&rbRx);
 //		check();
 
 		yRosSerial_spin();

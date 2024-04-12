@@ -15,6 +15,7 @@ typedef struct{
 	uint8_t *buffer;
 	size_t tail;
 	size_t size;
+	size_t count; // just to help monitor available data in the last update. the last update is the best to be taken from rb2_getAvailable()
 	DMA_HandleTypeDef* hdma;
 	UART_HandleTypeDef *huart;
 }Rb2_t;

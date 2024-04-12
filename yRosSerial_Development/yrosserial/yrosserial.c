@@ -157,6 +157,7 @@ static int processIncomingMessage(Rb2_t *rb, size_t len)
 	if (!validateChecksum(rb, len))
 	{
 		rb->tail = (rb->tail + len) % rb->size;
+		rb->count = rb2_getAvailable(rb);
 //		rx->count -= len;
 		return -2;
 	}
@@ -265,6 +266,7 @@ void yRosSerial_spin()
 	static int state = GET_HEADER1;
 //    static uint8_t bufferMessage[MAX_MESSAGE_SIZE - 3] = {0}; // It will contain all packet excluding teh header 1, header 2, and length
 	static size_t len = 0;
+	static skipCount = 0;
 	uint8_t breakFor = 0;
 	size_t available = 0;
 
@@ -303,16 +305,24 @@ void yRosSerial_spin()
 				// process directly from ring buffer for more efficient process
 //				uint8_t x[256];
 //				memcpy(x, rx->buffer, 256);
-				if(!processIncomingMessage(&rbRx, len))
-				{
-					state = GET_HEADER1;
-					len = 0;
-				}
+//				if(!processIncomingMessage(&rbRx, len))
+//				{
+//					state = GET_HEADER1;
+//					len = 0;
+//				}
+				processIncomingMessage(&rbRx, len);
+				state = GET_HEADER1;
+				len = 0;
 			}
 			else
 			{
 //				printf("Break! rb count: %d\n", available);
 				breakFor = 1;
+				skipCount++;
+				if(skipCount > 15){
+					state = GET_HEADER1;
+					len = 0;
+				}
 			}
 			break;
 		}
