@@ -9,11 +9,11 @@
 #define TWIST2DCALLBACK_H_
 
 #include "yrosserial.h"
-extern yRosSerial_twist2d twist2d;
+extern yRosSerial_twist2d_t twist2d;
 
 void twist2dCallback(void *message)
 {
-	twist2d = *((yRosSerial_twist2d*)message);
+	twist2d = *((yRosSerial_twist2d_t*)message);
 }
 
 

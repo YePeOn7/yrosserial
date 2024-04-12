@@ -394,7 +394,7 @@ void yRosSerial_publish(yRosSerial_pubHandle_t* hpub, void* message)
 	messageBase.type = hpub->type;
 	if(hpub->type == MT_STRING)
 	{
-		yRosSerial_string* strMsg = (yRosSerial_string*) message;
+		yRosSerial_string_t* strMsg = (yRosSerial_string_t*) message;
 		messageBase.length = strlen(strMsg->data) + 4; // add null terminator, topicId, Message type, and checksum
 
 		// generate checksum
@@ -416,8 +416,8 @@ void yRosSerial_publish(yRosSerial_pubHandle_t* hpub, void* message)
 	}
 	else if(hpub->type == MT_FLOAT32)
 	{
-		yRosSerial_float32* msg = (yRosSerial_float32*) message;
-		size_t msgSize = sizeof(yRosSerial_float32);
+		yRosSerial_float32_t* msg = (yRosSerial_float32_t*) message;
+		size_t msgSize = sizeof(yRosSerial_float32_t);
 		messageBase.length = msgSize+ 3; //additional: topicId, Message type, checksum
 
 		// generate checksum
@@ -448,8 +448,8 @@ void yRosSerial_publish(yRosSerial_pubHandle_t* hpub, void* message)
 	}
 	else if(hpub->type == MT_FLOAT64)
 	{
-		yRosSerial_float64* msg = (yRosSerial_float64*) message;
-		size_t msgSize = sizeof(yRosSerial_float64);
+		yRosSerial_float64_t* msg = (yRosSerial_float64_t*) message;
+		size_t msgSize = sizeof(yRosSerial_float64_t);
 		messageBase.length = msgSize+ 3; //additional: topicId, Message type, checksum
 
 		// generate checksum
@@ -480,8 +480,8 @@ void yRosSerial_publish(yRosSerial_pubHandle_t* hpub, void* message)
 	}
 	else if(hpub->type == MT_ODOMETRY2D)
 	{
-		yRosSerial_odometry2d* msg = (yRosSerial_odometry2d*) message;
-		size_t msgSize = sizeof(yRosSerial_odometry2d);
+		yRosSerial_odometry2d_t* msg = (yRosSerial_odometry2d_t*) message;
+		size_t msgSize = sizeof(yRosSerial_odometry2d_t);
 		messageBase.length = msgSize + 3; //additional: topicId, Message type, checksum
 
 		// generate checksum
@@ -512,8 +512,8 @@ void yRosSerial_publish(yRosSerial_pubHandle_t* hpub, void* message)
 	}
 	else if(hpub->type == MT_TWIST2D)
 	{
-		yRosSerial_twist2d* msg = (yRosSerial_twist2d*) message;
-		size_t msgSize = sizeof(yRosSerial_twist2d);
+		yRosSerial_twist2d_t* msg = (yRosSerial_twist2d_t*) message;
+		size_t msgSize = sizeof(yRosSerial_twist2d_t);
 		messageBase.length = msgSize + 3; //additional: topicId, Message type, checksum
 
 		// generate checksum

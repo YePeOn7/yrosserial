@@ -58,8 +58,8 @@ int a = 0;
 int cnt = 0;
 float f32;
 double f64;
-yRosSerial_odometry2d odometry2d;
-yRosSerial_twist2d twist2d;
+yRosSerial_odometry2d_t odometry2d;
+yRosSerial_twist2d_t twist2d;
 
 //extern RingBuffer_t *rx;
 //extern RingBuffer_t *tx;
@@ -144,11 +144,11 @@ int main(void)
 	char bufferMsg[256];
 
 	// message that will be used to publish the data to the topics
-	yRosSerial_string strMsg = { 0 };
-	yRosSerial_float32 float32Msg = { 0 };
-	yRosSerial_float64 float64Msg = { 0 };
-	yRosSerial_odometry2d odometryMsg = { 0 };
-	yRosSerial_twist2d twistMsg = { 0 };
+	yRosSerial_string_t strMsg = { 0 };
+	yRosSerial_float32_t float32Msg = { 0 };
+	yRosSerial_float64_t float64Msg = { 0 };
+	yRosSerial_odometry2d_t odometryMsg = { 0 };
+	yRosSerial_twist2d_t twistMsg = { 0 };
 
 	strMsg.data = bufferMsg;
 

@@ -9,11 +9,11 @@
 #define ODOMETRY2DCALLBACK_H_
 
 #include "yrosserial.h"
-extern yRosSerial_odometry2d odometry2d;
+extern yRosSerial_odometry2d_t odometry2d;
 
 void odometry2dCallback(void *message)
 {
-	odometry2d = *((yRosSerial_odometry2d*)message);
+	odometry2d = *((yRosSerial_odometry2d_t*)message);
 }
 
 #endif /* ODOMETRY2DCALLBACK_H_ */
