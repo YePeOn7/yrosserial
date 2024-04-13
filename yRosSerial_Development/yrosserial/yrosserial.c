@@ -209,7 +209,9 @@ static int processIncomingMessage(Rb2_t *rb, size_t len)
 						mt == MT_INT8_MULTIARRAY ||
 						mt == MT_INT16_MULTIARRAY ||
 						mt == MT_INT32_MULTIARRAY ||
-						mt == MT_INT64_MULTIARRAY);
+						mt == MT_INT64_MULTIARRAY ||
+						mt == MT_FLOAT32_MULTIARRAY ||
+						mt == MT_FLOAT64_MULTIARRAY);
 				if(isArrayTipe)
 				{
 					md.length = *((uint16_t*)data);

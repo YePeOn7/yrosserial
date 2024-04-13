@@ -36,6 +36,8 @@
 #include "s32mCallback.h"
 #include "u64mCallback.h"
 #include "s64mCallback.h"
+#include "f32mCallback.h"
+#include "f64mCallback.h"
 
 #include "u8Callback.h"
 #include "s8Callback.h"
@@ -70,11 +72,13 @@ DMA_HandleTypeDef hdma_usart2_tx;
 /* USER CODE BEGIN PV */
 
 
-uint8_t r[512] = { 0 };
-uint8_t t[512] = { 0 };
+uint8_t r[1024] = { 0 };
+uint8_t t[2048] = { 0 };
 RingBuffer_t rb;
 int a = 0;
 int a_max = 0;
+int tc = 0;
+int tc_max = 0;
 int cnt = 0;
 
 // ---- data for subscriber ---- //
@@ -88,6 +92,8 @@ uint32_t subU32M[L_ARRAY];
 int32_t subS32M[L_ARRAY];
 uint64_t subU64M[L_ARRAY];
 int64_t subS64M[L_ARRAY];
+double subF64M[L_ARRAY];
+float subF32M[L_ARRAY];
 
 uint8_t subU8;
 int8_t subS8;
@@ -161,8 +167,8 @@ int main(void)
 	HAL_UART_DeInit(&huart2);
 	HAL_UART_Init(&huart2);
 	yRosSerial_setting_t rosSerialSetting;
-	rosSerialSetting.rxBufSize = 512;
-	rosSerialSetting.txBufSize = 512;
+	rosSerialSetting.rxBufSize = 1024;
+	rosSerialSetting.txBufSize = 2048;
 //	rosSerialSetting.rx = r;
 //	rosSerialSetting.tx = t;
 	rosSerialSetting.huart = &huart2;
@@ -208,6 +214,8 @@ int main(void)
 	yRosSerial_subscribe("/sub_s32m", MT_INT32_MULTIARRAY, s32mCallback);
 	yRosSerial_subscribe("/sub_u64m", MT_UINT64_MULTIARRAY, u64mCallback);
 	yRosSerial_subscribe("/sub_s64m", MT_INT64_MULTIARRAY, s64mCallback);
+	yRosSerial_subscribe("/sub_f32m", MT_FLOAT32_MULTIARRAY, f32mCallback);
+	yRosSerial_subscribe("/sub_f64m", MT_FLOAT64_MULTIARRAY, f64mCallback);
 
 	yRosSerial_subscribe("/sub_u8", MT_UINT8, u8Callback);
 	yRosSerial_subscribe("/sub_s8", MT_INT8, s8Callback);
@@ -326,16 +334,16 @@ int main(void)
 			twistMsg.y += 2;
 			twistMsg.w += 3;
 
-			yRosSerial_publish(pubU8M, &u8mMsg); HAL_Delay(1);
-			yRosSerial_publish(pubS8M, &s8mMsg);  HAL_Delay(1);
-			yRosSerial_publish(pubU16M, &u16mMsg); HAL_Delay(1);
-			yRosSerial_publish(pubS16M, &s16mMsg); HAL_Delay(1);
-			yRosSerial_publish(pubU32M, &u32mMsg); HAL_Delay(1);
-			yRosSerial_publish(pubS32M, &s32mMsg); HAL_Delay(1);
-			yRosSerial_publish(pubU64M, &u64mMsg); HAL_Delay(1);
-			yRosSerial_publish(pubS64M, &s64mMsg); HAL_Delay(1);
-			yRosSerial_publish(pubF32M, &f32mMsg); HAL_Delay(1);
-			yRosSerial_publish(pubF64M, &f64mMsg); HAL_Delay(1);
+			yRosSerial_publish(pubU8M, &u8mMsg); //HAL_Delay(1);
+			yRosSerial_publish(pubS8M, &s8mMsg);  //HAL_Delay(1);
+			yRosSerial_publish(pubU16M, &u16mMsg); //HAL_Delay(1);
+			yRosSerial_publish(pubS16M, &s16mMsg); //HAL_Delay(1);
+			yRosSerial_publish(pubU32M, &u32mMsg); //HAL_Delay(1);
+			yRosSerial_publish(pubS32M, &s32mMsg); //HAL_Delay(1);
+			yRosSerial_publish(pubU64M, &u64mMsg); //HAL_Delay(1);
+			yRosSerial_publish(pubS64M, &s64mMsg); //HAL_Delay(1);
+			yRosSerial_publish(pubF32M, &f32mMsg); //HAL_Delay(1);
+			yRosSerial_publish(pubF64M, &f64mMsg); //HAL_Delay(1);
 
 			yRosSerial_publish(pubU8, &u8Msg);
 			yRosSerial_publish(pubS8, &s8Msg);
@@ -376,6 +384,9 @@ int main(void)
 //		yRosSerial_getTxBuffer(t); //only for checking memory from Debug
 		a = rb2_getAvailable(&rbRx);
 		if(a > a_max) a_max = a;
+
+		tc = yRosSerial_getTxCount();
+		if(tc > tc_max) tc_max = tc;
 //		check();
 
 		yRosSerial_spin();
