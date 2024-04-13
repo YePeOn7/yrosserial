@@ -23,8 +23,6 @@
 /* USER CODE BEGIN Includes */
 #include "yrosserial.h"
 #include "stringCallback.h"
-#include "float32Callback.h"
-#include "float64Callback.h"
 #include "odometry2dCallback.h"
 #include "twist2dCallback.h"
 
@@ -47,6 +45,8 @@
 #include "s32Callback.h"
 #include "u64Callback.h"
 #include "s64Callback.h"
+#include "f32Callback.h"
+#include "f64Callback.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -201,8 +201,6 @@ int main(void)
 	yRosSerial_pubHandle_t *pubF64 = yRosSerial_advertise("/pub_f64", MT_FLOAT64);
 
 	yRosSerial_subscribe("/subString", MT_STRING, stringCallback);
-	yRosSerial_subscribe("/subFloat32", MT_FLOAT32, float32Callback);
-	yRosSerial_subscribe("/subFloat64", MT_FLOAT64, float64Callback);
 	yRosSerial_subscribe("/subOdometry", MT_ODOMETRY2D, odometry2dCallback);
 	yRosSerial_subscribe("/subTwist", MT_TWIST2D, twist2dCallback);
 
@@ -225,6 +223,8 @@ int main(void)
 	yRosSerial_subscribe("/sub_s32", MT_INT32, s32Callback);
 	yRosSerial_subscribe("/sub_u64", MT_UINT64, u64Callback);
 	yRosSerial_subscribe("/sub_s64", MT_INT64, s64Callback);
+	yRosSerial_subscribe("/sub_f32", MT_FLOAT32, f32Callback);
+	yRosSerial_subscribe("/sub_f64", MT_FLOAT64, f64Callback);
 
 	char bufferMsg[256];
 

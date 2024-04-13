@@ -5,14 +5,14 @@
  *      Author: yp7
  */
 
-#ifndef FLOAT64CALLBACK_H_
-#define FLOAT64CALLBACK_H_
+#ifndef F64CALLBACK_H_
+#define F64CALLBACK_H_
 
 extern double f64;
 
-void float64Callback(void *message)
+void f64Callback(void *message)
 {
 	f64 = *((double*)message);
 }
 
-#endif /* FLOAT64CALLBACK_H_ */
+#endif /* F64CALLBACK_H_ */
