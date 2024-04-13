@@ -391,7 +391,7 @@ int main(void)
 //		dma = HAL_DMA_GetState(&hdma_usart2_rx);
 //		while(cnt > 1013);
 //		a = yRosSerial_getTxCount();
-		HAL_Delay(10);
+		HAL_Delay(1);
 	}
   /* USER CODE END 3 */
 }

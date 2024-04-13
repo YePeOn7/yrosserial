@@ -282,7 +282,7 @@ void yRosSerial_spin()
 
 	static int state = GET_HEADER1;
 	static size_t len = 0;
-	static int skipCount = 0;
+	static uint32_t tGetMessage = 0; //save the last time enter to enter get message state
 	uint8_t breakFor = 0;
 	size_t available = 0;
 
@@ -311,6 +311,7 @@ void yRosSerial_spin()
 //			printf("Getting length\n");
 			len = data;
 			state = GET_MESSAGE;
+			tGetMessage = HAL_GetTick();
 			break;
 		case GET_MESSAGE:
 //			printf("Getting Message\n");
@@ -324,8 +325,8 @@ void yRosSerial_spin()
 			{
 //				printf("Break! rb count: %d\n", available);
 				breakFor = 1;
-				skipCount++;
-				if(skipCount > 15){
+
+				if((uint32_t)(HAL_GetTick() - tGetMessage) > 50){
 					state = GET_HEADER1;
 					len = 0;
 				}
