@@ -31,6 +31,12 @@
 #include "s8mCallback.h"
 #include "u8Callback.h"
 #include "s8Callback.h"
+#include "u16Callback.h"
+#include "s16Callback.h"
+#include "u32Callback.h"
+#include "s32Callback.h"
+#include "u64Callback.h"
+#include "s64Callback.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -86,6 +92,8 @@ int64_t subS64;
 
 yRosSerial_odometry2d_t odometry2d;
 yRosSerial_twist2d_t twist2d;
+
+int64_t mna[8]; //monitor non array
 
 //extern RingBuffer_t *rx;
 //extern RingBuffer_t *tx;
@@ -188,8 +196,16 @@ int main(void)
 
 	yRosSerial_subscribe("/sub_u8m", MT_UINT8_MULTIARRAY, u8mCallback);
 	yRosSerial_subscribe("/sub_s8m", MT_INT8_MULTIARRAY, s8mCallback);
+
 	yRosSerial_subscribe("/sub_u8", MT_UINT8, u8Callback);
 	yRosSerial_subscribe("/sub_s8", MT_INT8, s8Callback);
+	yRosSerial_subscribe("/sub_u16", MT_UINT16, u16Callback);
+	yRosSerial_subscribe("/sub_s16", MT_INT16, s16Callback);
+	yRosSerial_subscribe("/sub_u32", MT_UINT32, u32Callback);
+	yRosSerial_subscribe("/sub_s32", MT_INT32, s32Callback);
+	yRosSerial_subscribe("/sub_u64", MT_UINT64, u64Callback);
+	yRosSerial_subscribe("/sub_s64", MT_INT64, s64Callback);
+
 
 	char bufferMsg[256];
 
@@ -347,6 +363,15 @@ int main(void)
 //		check();
 
 		yRosSerial_spin();
+
+		mna[0] = subS8;
+		mna[1] = subU8;
+		mna[2] = subS16;
+		mna[3] = subU16;
+		mna[4] = subS32;
+		mna[5] = subU32;
+		mna[6] = subS64;
+		mna[7] = subU64;
 //		dma = HAL_DMA_GetState(&hdma_usart2_rx);
 //		while(cnt > 1013);
 //		a = yRosSerial_getTxCount();
