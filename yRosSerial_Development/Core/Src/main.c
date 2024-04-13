@@ -27,8 +27,16 @@
 #include "float64Callback.h"
 #include "odometry2dCallback.h"
 #include "twist2dCallback.h"
+
 #include "u8mCallback.h"
 #include "s8mCallback.h"
+#include "u16mCallback.h"
+#include "s16mCallback.h"
+#include "u32mCallback.h"
+#include "s32mCallback.h"
+#include "u64mCallback.h"
+#include "s64mCallback.h"
+
 #include "u8Callback.h"
 #include "s8Callback.h"
 #include "u16Callback.h"
@@ -62,11 +70,11 @@ DMA_HandleTypeDef hdma_usart2_tx;
 /* USER CODE BEGIN PV */
 
 
-uint8_t r[256] = { 0 };
-uint8_t t[256] = { 0 };
+uint8_t r[512] = { 0 };
+uint8_t t[512] = { 0 };
 RingBuffer_t rb;
 int a = 0;
-
+int a_max = 0;
 int cnt = 0;
 
 // ---- data for subscriber ---- //
@@ -94,6 +102,7 @@ yRosSerial_odometry2d_t odometry2d;
 yRosSerial_twist2d_t twist2d;
 
 int64_t mna[8]; //monitor non array
+uint32_t lastPublish; // to save last time the publish is performed
 
 //extern RingBuffer_t *rx;
 //extern RingBuffer_t *tx;
@@ -110,9 +119,6 @@ static void MX_USART2_UART_Init(void);
 
 /* Private user code ---------------------------------------------------------*/
 /* USER CODE BEGIN 0 */
-int dma = 0;
-int dmaE = 0;
-int dmaS = 0;
 extern Rb2_t rbRx;
 /* USER CODE END 0 */
 
@@ -155,8 +161,8 @@ int main(void)
 	HAL_UART_DeInit(&huart2);
 	HAL_UART_Init(&huart2);
 	yRosSerial_setting_t rosSerialSetting;
-	rosSerialSetting.rxBufSize = 256;
-	rosSerialSetting.txBufSize = 256;
+	rosSerialSetting.rxBufSize = 512;
+	rosSerialSetting.txBufSize = 512;
 //	rosSerialSetting.rx = r;
 //	rosSerialSetting.tx = t;
 	rosSerialSetting.huart = &huart2;
@@ -188,14 +194,20 @@ int main(void)
 	yRosSerial_pubHandle_t *pubF32 = yRosSerial_advertise("/pub_f32", MT_FLOAT32);
 	yRosSerial_pubHandle_t *pubF64 = yRosSerial_advertise("/pub_f64", MT_FLOAT64);
 
-//	yRosSerial_subscribe("/subString", MT_STRING, stringCallback);
-//	yRosSerial_subscribe("/subFloat32", MT_FLOAT32, float32Callback);
-//	yRosSerial_subscribe("/subFloat64", MT_FLOAT64, float64Callback);
-//	yRosSerial_subscribe("/subOdometry", MT_ODOMETRY2D, odometry2dCallback);
-//	yRosSerial_subscribe("/subTwist", MT_TWIST2D, twist2dCallback);
+	yRosSerial_subscribe("/subString", MT_STRING, stringCallback);
+	yRosSerial_subscribe("/subFloat32", MT_FLOAT32, float32Callback);
+	yRosSerial_subscribe("/subFloat64", MT_FLOAT64, float64Callback);
+	yRosSerial_subscribe("/subOdometry", MT_ODOMETRY2D, odometry2dCallback);
+	yRosSerial_subscribe("/subTwist", MT_TWIST2D, twist2dCallback);
 
 	yRosSerial_subscribe("/sub_u8m", MT_UINT8_MULTIARRAY, u8mCallback);
 	yRosSerial_subscribe("/sub_s8m", MT_INT8_MULTIARRAY, s8mCallback);
+	yRosSerial_subscribe("/sub_u16m", MT_UINT16_MULTIARRAY, u16mCallback);
+	yRosSerial_subscribe("/sub_s16m", MT_INT16_MULTIARRAY, s16mCallback);
+	yRosSerial_subscribe("/sub_u32m", MT_UINT32_MULTIARRAY, u32mCallback);
+	yRosSerial_subscribe("/sub_s32m", MT_INT32_MULTIARRAY, s32mCallback);
+	yRosSerial_subscribe("/sub_u64m", MT_UINT64_MULTIARRAY, u64mCallback);
+	yRosSerial_subscribe("/sub_s64m", MT_INT64_MULTIARRAY, s64mCallback);
 
 	yRosSerial_subscribe("/sub_u8", MT_UINT8, u8Callback);
 	yRosSerial_subscribe("/sub_s8", MT_INT8, s8Callback);
@@ -205,7 +217,6 @@ int main(void)
 	yRosSerial_subscribe("/sub_s32", MT_INT32, s32Callback);
 	yRosSerial_subscribe("/sub_u64", MT_UINT64, u64Callback);
 	yRosSerial_subscribe("/sub_s64", MT_INT64, s64Callback);
-
 
 	char bufferMsg[256];
 
@@ -296,70 +307,75 @@ int main(void)
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
-		sprintf(bufferMsg, "Hi.... Yoyoyoyo.... From Pub1 (%d)", cnt++);
-		yRosSerial_publish(pubTest1, &strMsg);
-
-		yRosSerial_publish(pubF32, &f32Msg);
-		yRosSerial_publish(pubF64, &f64Msg);
-
-		yRosSerial_publish(pubTest4, &odometryMsg);
-		odometryMsg.x += 0.01;
-		odometryMsg.y += 0.02;
-		odometryMsg.w += 0.03;
-
-		yRosSerial_publish(pubTest5, &twistMsg);
-		twistMsg.x += 1;
-		twistMsg.y += 2;
-		twistMsg.w += 3;
-
-		yRosSerial_publish(pubU8M, &u8mMsg); HAL_Delay(1);
-		yRosSerial_publish(pubS8M, &s8mMsg);  HAL_Delay(1);
-		yRosSerial_publish(pubU16M, &u16mMsg); HAL_Delay(1);
-		yRosSerial_publish(pubS16M, &s16mMsg); HAL_Delay(1);
-		yRosSerial_publish(pubU32M, &u32mMsg); HAL_Delay(1);
-		yRosSerial_publish(pubS32M, &s32mMsg); HAL_Delay(1);
-		yRosSerial_publish(pubU64M, &u64mMsg); HAL_Delay(1);
-		yRosSerial_publish(pubS64M, &s64mMsg); HAL_Delay(1);
-		yRosSerial_publish(pubF32M, &f32mMsg); HAL_Delay(1);
-		yRosSerial_publish(pubF64M, &f64mMsg); HAL_Delay(1);
-
-		yRosSerial_publish(pubU8, &u8Msg);
-		yRosSerial_publish(pubS8, &s8Msg);
-		yRosSerial_publish(pubU16, &u16Msg);
-		yRosSerial_publish(pubS16, &s16Msg);
-		yRosSerial_publish(pubU32, &u32Msg);
-		yRosSerial_publish(pubS32, &s32Msg);
-		yRosSerial_publish(pubU64, &u64Msg);
-		yRosSerial_publish(pubS64, &s64Msg);
-
-		for(int i = 0; i < L_ARRAY; i++)
+		if((uint32_t)(HAL_GetTick() - lastPublish) > 100) //limit publish rate
 		{
-			u8mData[i]++;
-			s8mData[i]--;
-			u16mData[i]++;
-			s16mData[i]--;
-			u32mData[i]++;
-			s32mData[i]--;
-			u64mData[i]++;
-			s64mData[i]--;
-			f32mData[i] += 1;
-			f64mData[i] -= 1;
-		}
+			lastPublish = HAL_GetTick();
+			sprintf(bufferMsg, "Hi.... Yoyoyoyo.... From Pub1 (%d)", cnt++);
+			yRosSerial_publish(pubTest1, &strMsg);
 
-		u8Msg.data++;
-		s8Msg.data--;
-		u16Msg.data++;
-		s16Msg.data--;
-		u32Msg.data++;
-		s32Msg.data--;
-		u64Msg.data++;
-		s64Msg.data--;
-		f32Msg.data += 0.1;
-		f64Msg.data -= 0.1;
+			yRosSerial_publish(pubF32, &f32Msg);
+			yRosSerial_publish(pubF64, &f64Msg);
+
+			yRosSerial_publish(pubTest4, &odometryMsg);
+			odometryMsg.x += 0.01;
+			odometryMsg.y += 0.02;
+			odometryMsg.w += 0.03;
+
+			yRosSerial_publish(pubTest5, &twistMsg);
+			twistMsg.x += 1;
+			twistMsg.y += 2;
+			twistMsg.w += 3;
+
+			yRosSerial_publish(pubU8M, &u8mMsg); HAL_Delay(1);
+			yRosSerial_publish(pubS8M, &s8mMsg);  HAL_Delay(1);
+			yRosSerial_publish(pubU16M, &u16mMsg); HAL_Delay(1);
+			yRosSerial_publish(pubS16M, &s16mMsg); HAL_Delay(1);
+			yRosSerial_publish(pubU32M, &u32mMsg); HAL_Delay(1);
+			yRosSerial_publish(pubS32M, &s32mMsg); HAL_Delay(1);
+			yRosSerial_publish(pubU64M, &u64mMsg); HAL_Delay(1);
+			yRosSerial_publish(pubS64M, &s64mMsg); HAL_Delay(1);
+			yRosSerial_publish(pubF32M, &f32mMsg); HAL_Delay(1);
+			yRosSerial_publish(pubF64M, &f64mMsg); HAL_Delay(1);
+
+			yRosSerial_publish(pubU8, &u8Msg);
+			yRosSerial_publish(pubS8, &s8Msg);
+			yRosSerial_publish(pubU16, &u16Msg);
+			yRosSerial_publish(pubS16, &s16Msg);
+			yRosSerial_publish(pubU32, &u32Msg);
+			yRosSerial_publish(pubS32, &s32Msg);
+			yRosSerial_publish(pubU64, &u64Msg);
+			yRosSerial_publish(pubS64, &s64Msg);
+
+			for(int i = 0; i < L_ARRAY; i++)
+			{
+				u8mData[i]++;
+				s8mData[i]--;
+				u16mData[i]++;
+				s16mData[i]--;
+				u32mData[i]++;
+				s32mData[i]--;
+				u64mData[i]++;
+				s64mData[i]--;
+				f32mData[i] += 1;
+				f64mData[i] -= 1;
+			}
+
+			u8Msg.data++;
+			s8Msg.data--;
+			u16Msg.data++;
+			s16Msg.data--;
+			u32Msg.data++;
+			s32Msg.data--;
+			u64Msg.data++;
+			s64Msg.data--;
+			f32Msg.data += 0.1;
+			f64Msg.data -= 0.1;
+		}
 
 		yRosSerial_getRxBuffer(r); //only for checking memory from Debug
 //		yRosSerial_getTxBuffer(t); //only for checking memory from Debug
 		a = rb2_getAvailable(&rbRx);
+		if(a > a_max) a_max = a;
 //		check();
 
 		yRosSerial_spin();
@@ -375,9 +391,7 @@ int main(void)
 //		dma = HAL_DMA_GetState(&hdma_usart2_rx);
 //		while(cnt > 1013);
 //		a = yRosSerial_getTxCount();
-		dmaE = HAL_DMA_GetError(&hdma_usart2_rx);
-		dmaS = HAL_UART_GetState(&huart2);
-		HAL_Delay(100);
+		HAL_Delay(10);
 	}
   /* USER CODE END 3 */
 }

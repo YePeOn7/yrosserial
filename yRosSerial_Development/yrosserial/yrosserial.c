@@ -220,6 +220,7 @@ static int processIncomingMessage(Rb2_t *rb, size_t len)
 				{
 					subscriberList[i].callback((void*)data);
 				}
+				break;
 			}
 		}
 	}
