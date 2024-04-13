@@ -44,19 +44,18 @@ void RingBuffer_free(RingBuffer_t *rb)
 
 size_t RingBuffer_append(RingBuffer_t *rb, uint8_t *data, size_t len)
 {
-	if (rb->size - rb->count >= len)
+	while(!(rb->size - rb->count >= len));
+
+	size_t toEnd = rb->size - rb->head;
+	if (toEnd >= len) memcpy(&rb->buffer[rb->head], data, len);
+	else
 	{
-		size_t toEnd = rb->size - rb->head;
-		if (toEnd >= len) memcpy(&rb->buffer[rb->head], data, len);
-		else
-		{
-			memcpy(&rb->buffer[rb->head], data, (size_t) toEnd);
-			memcpy(&rb->buffer[0], &data[toEnd], (size_t) (len - toEnd));
-		}
-		rb->count += len;
-		rb->head = (rb->head + len) % rb->size;
-		return len;
+		memcpy(&rb->buffer[rb->head], data, (size_t) toEnd);
+		memcpy(&rb->buffer[0], &data[toEnd], (size_t) (len - toEnd));
 	}
+	rb->count += len;
+	rb->head = (rb->head + len) % rb->size;
+	return len;
 
 	return 0;
 }
