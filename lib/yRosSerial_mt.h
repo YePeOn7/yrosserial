@@ -8,6 +8,8 @@
 #ifndef YROSSERIAL_MT_H_
 #define YROSSERIAL_MT_H_
 
+#include <stdint.h>
+
 typedef enum
 {
 	MT_STRING,
@@ -66,7 +68,107 @@ typedef struct
 
 typedef struct
 {
-	float data;
+	uint8_t data;
 }yRosSerial_uint8_t;
 
+typedef struct
+{
+	int8_t data;
+}yRosSerial_int8_t;
+
+typedef struct
+{
+	uint16_t data;
+}yRosSerial_uint16_t;
+
+typedef struct
+{
+	int16_t data;
+}yRosSerial_int16_t;
+
+typedef struct
+{
+	uint32_t data;
+}yRosSerial_uint32_t;
+
+typedef struct
+{
+	int32_t data;
+}yRosSerial_int32_t;
+
+typedef struct
+{
+	uint64_t data;
+}yRosSerial_uint64_t;
+
+typedef struct
+{
+	int64_t data;
+}yRosSerial_int64_t;
+
+typedef struct
+{
+	uint16_t length;
+	void *data;
+}yRosSerial_voidmul_t;
+
+typedef struct
+{
+	uint16_t length;
+	uint8_t *data;
+}yRosSerial_uint8mul_t;
+
+typedef struct
+{
+	uint16_t length;
+	int8_t *data;
+}yRosSerial_int8mul_t;
+
+typedef struct
+{
+	uint16_t length;
+	uint16_t *data;
+}yRosSerial_uint16mul_t;
+
+typedef struct
+{
+	uint16_t length;
+	int16_t *data;
+}yRosSerial_int16mul_t;
+
+typedef struct
+{
+	uint16_t length;
+	uint32_t *data;
+}yRosSerial_uint32mul_t;
+
+typedef struct
+{
+	uint16_t length;
+	int32_t *data;
+}yRosSerial_int32mul_t;
+
+typedef struct
+{
+	uint16_t length;
+	uint64_t *data;
+}yRosSerial_uint64mul_t;
+
+typedef struct
+{
+	uint16_t length;
+	int64_t *data;
+}yRosSerial_int64mul_t;
+
+typedef struct
+{
+	uint16_t length;
+	float *data;
+}yRosSerial_float32mul_t;
+
+typedef struct
+{
+	uint16_t length;
+	double *data;
+}yRosSerial_float64mul_t;
 #endif /* YROSSERIAL_MT_H_ */

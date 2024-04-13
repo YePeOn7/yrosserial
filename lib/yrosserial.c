@@ -6,8 +6,8 @@
 #include <stdlib.h>
 
 #define MAX_MESSAGE_SIZE    128 // maximum message size (Should not be more than buffer size)
-#define MAX_PUBLISHER_SIZE	10
-#define MAX_SUBSRIBER_SIZE	10
+#define MAX_PUBLISHER_SIZE	30
+#define MAX_SUBSRIBER_SIZE	30
 #define HEADER				{0x05, 0x09}
 #define MAX_INSTRUCTION_VAL	10
 
@@ -166,7 +166,6 @@ static int processIncomingMessage(Rb2_t *rb, size_t len)
 {
 	uint8_t *b = rb->buffer;
 	uint16_t t = rb->tail;
-//	uint16_t bz = rb->size; // buffer size
 	size_t a = rb2_getAvailable(rb);
 
 	if (a < len) return -1;
@@ -177,7 +176,6 @@ static int processIncomingMessage(Rb2_t *rb, size_t len)
 	{
 		rb->tail = (rb->tail + len) % rb->size;
 		rb->count = rb2_getAvailable(rb);
-//		rx->count -= len;
 		return -2;
 	}
 
@@ -191,35 +189,43 @@ static int processIncomingMessage(Rb2_t *rb, size_t len)
 	}
 	else if(b[t] >= MAX_INSTRUCTION_VAL) // process message from subscibed topic
 	{
-		int id = b[t]; //topic id
-		uint8_t x[512];
-//		int l = 0;
+		uint8_t id; // topic id
+		uint8_t mt; // message Type
 
-		memcpy(x, rb->buffer, 256);
-//		int mt = b[(t+1) % bz]; //message_type
-//		int i_dt = (t+2) % bz; // index of data
-
-		uint8_t data[len-2]; // -2 for excluding id and mt
-		rb2_pop(rb, data, 2); // remove 2 data
-		rb2_pop(rb, data, len-2);
-//		readRingBuffer(rb, 2, len-2, data);
-
+		rb2_pop(rb, &id, 1); // grab topic id
+		rb2_pop(rb, &mt, 1); // grab message type
 		for(int i = 0; i < MAX_SUBSRIBER_SIZE; i++)
 		{
-			if(subscriberList[i].id == id){
-				subscriberList[i].callback((void*)data);
+			if(subscriberList[i].id == id)
+			{
+				uint8_t data[len-2]; // -2 for excluding id and mt
+				rb2_pop(rb, data, len-2);
+
+				yRosSerial_voidmul_t md = {0}; // for multi array data
+				uint8_t isArrayTipe = (mt == MT_UINT8_MULTIARRAY ||
+						mt == MT_UINT16_MULTIARRAY ||
+						mt == MT_UINT32_MULTIARRAY ||
+						mt == MT_UINT64_MULTIARRAY ||
+						mt == MT_INT8_MULTIARRAY ||
+						mt == MT_INT16_MULTIARRAY ||
+						mt == MT_INT32_MULTIARRAY ||
+						mt == MT_INT64_MULTIARRAY ||
+						mt == MT_FLOAT32_MULTIARRAY ||
+						mt == MT_FLOAT64_MULTIARRAY);
+				if(isArrayTipe)
+				{
+					md.length = *((uint16_t*)data);
+					md.data = data+sizeof(uint16_t);
+					subscriberList[i].callback((void*)&md);
+				}
+				else
+				{
+					subscriberList[i].callback((void*)data);
+				}
+				break;
 			}
 		}
 	}
-
-	// Topic Id
-	else
-	{
-		// uint8_t topicId = message[0];
-	}
-
-//	rx->count -= len;
-//	rx->tail = (rx->tail + len) % rx->size;
 
 	return 0;
 }
@@ -227,7 +233,6 @@ static int processIncomingMessage(Rb2_t *rb, size_t len)
 //------------------ Interface Implementation --------------- //
 void yRosSerial_init(yRosSerial_setting_t *_setting)
 {
-//	rx = RingBuffer_create(_setting->rxBufSize);
 	tx = RingBuffer_create(_setting->txBufSize);
 	memcpy(&setting, _setting, sizeof(yRosSerial_setting_t));
 
@@ -238,14 +243,10 @@ void yRosSerial_init(yRosSerial_setting_t *_setting)
 
 	initialized = 1;
 
-//	HAL_UARTEx_ReceiveToIdle_DMA(setting.huart, rTemp, sizeof(rTemp));
 	HAL_UART_Receive_DMA(rbRx.huart, rbRx.buffer, rbRx.size);
 	__HAL_DMA_DISABLE_IT(setting.hdma_rx, DMA_IT_HT);
 }
-uint16_t sizeGet = 0;
-extern int dma;
-extern DMA_HandleTypeDef hdma_usart2_rx;
-extern UART_HandleTypeDef huart2;
+
 void yRosSerial_handleCompleteReceive(UART_HandleTypeDef *huart, uint16_t size)
 {
 	if (huart == setting.huart)
@@ -282,9 +283,8 @@ void yRosSerial_spin()
 	};
 
 	static int state = GET_HEADER1;
-//    static uint8_t bufferMessage[MAX_MESSAGE_SIZE - 3] = {0}; // It will contain all packet excluding teh header 1, header 2, and length
 	static size_t len = 0;
-	static int skipCount = 0;
+	static uint32_t tGetMessage = 0; //save the last time enter to enter get message state
 	uint8_t breakFor = 0;
 	size_t available = 0;
 
@@ -294,7 +294,6 @@ void yRosSerial_spin()
 		// printf("check a: %d\n", a);
 		if (state != GET_MESSAGE)
 		{
-//			RingBuffer_pop(rx, &data, 1);
 			rb2_pop(&rbRx, &data, 1);
 //			printf("tail: %d, c: %d, getData: %d\n", rbRx.tail, available, data);
 		}
@@ -314,20 +313,12 @@ void yRosSerial_spin()
 //			printf("Getting length\n");
 			len = data;
 			state = GET_MESSAGE;
+			tGetMessage = HAL_GetTick();
 			break;
 		case GET_MESSAGE:
 //			printf("Getting Message\n");
 			if (available >= len)
 			{
-//                RingBuffer_popCopy(rx, bufferMessage, len);
-				// process directly from ring buffer for more efficient process
-//				uint8_t x[256];
-//				memcpy(x, rx->buffer, 256);
-//				if(!processIncomingMessage(&rbRx, len))
-//				{
-//					state = GET_HEADER1;
-//					len = 0;
-//				}
 				processIncomingMessage(&rbRx, len);
 				state = GET_HEADER1;
 				len = 0;
@@ -336,8 +327,8 @@ void yRosSerial_spin()
 			{
 //				printf("Break! rb count: %d\n", available);
 				breakFor = 1;
-				skipCount++;
-				if(skipCount > 15){
+
+				if((uint32_t)(HAL_GetTick() - tGetMessage) > 50){
 					state = GET_HEADER1;
 					len = 0;
 				}
@@ -394,7 +385,7 @@ void yRosSerial_publish(yRosSerial_pubHandle_t* hpub, void* message)
 	messageBase.type = hpub->type;
 	if(hpub->type == MT_STRING)
 	{
-		yRosSerial_string* strMsg = (yRosSerial_string*) message;
+		yRosSerial_string_t* strMsg = (yRosSerial_string_t*) message;
 		messageBase.length = strlen(strMsg->data) + 4; // add null terminator, topicId, Message type, and checksum
 
 		// generate checksum
@@ -405,7 +396,7 @@ void yRosSerial_publish(yRosSerial_pubHandle_t* hpub, void* message)
 		{
 			checksum += strMsg->data[i];
 		}
-//		size_t l=strlen(strMsg->data);
+
 		// Package packet to Ring Buffer
 		RingBuffer_append(tx, header, sizeof(header));
 		RingBuffer_append(tx, (uint8_t*)&messageBase, sizeof(messageBase));
@@ -414,74 +405,10 @@ void yRosSerial_publish(yRosSerial_pubHandle_t* hpub, void* message)
 //		printf("%s (%d)\n", strMsg->data, messageBase.length);
 		memcpy(t, tx->buffer, 256);
 	}
-	else if(hpub->type == MT_FLOAT32)
-	{
-		yRosSerial_float32* msg = (yRosSerial_float32*) message;
-		size_t msgSize = sizeof(yRosSerial_float32);
-		messageBase.length = msgSize+ 3; //additional: topicId, Message type, checksum
-
-		// generate checksum
-		uint8_t checksum = messageBase.length;
-		checksum += hpub->id;
-		checksum += hpub->type;
-		for(int i = 0; i < msgSize; i++)
-		{
-			checksum += ((uint8_t*)msg)[i];
-		}
-
-		RingBuffer_append(tx, header, sizeof(header));
-		RingBuffer_append(tx, (uint8_t*)&messageBase, sizeof(messageBase));
-		RingBuffer_append(tx, (uint8_t*)msg, msgSize);
-		RingBuffer_append(tx, &checksum, sizeof(uint8_t));
-//		printf("float ==> data: %.3f\n", msg->data);
-
-//		for(int i = 0; i < sizeof(messageBase); i++)
-//		{
-//			printf("%d ", ((uint8_t*)&messageBase)[i]);
-//		}
-//
-//		for(int i = 0; i < msgSize; i++)
-//		{
-//			printf("%d ", ((uint8_t*)msg)[i]);
-//		}
-//		printf("%d\n", checksum);
-	}
-	else if(hpub->type == MT_FLOAT64)
-	{
-		yRosSerial_float64* msg = (yRosSerial_float64*) message;
-		size_t msgSize = sizeof(yRosSerial_float64);
-		messageBase.length = msgSize+ 3; //additional: topicId, Message type, checksum
-
-		// generate checksum
-		uint8_t checksum = messageBase.length;
-		checksum += hpub->id;
-		checksum += hpub->type;
-		for(int i = 0; i < msgSize; i++)
-		{
-			checksum += ((uint8_t*)msg)[i];
-		}
-
-		RingBuffer_append(tx, header, sizeof(header));
-		RingBuffer_append(tx, (uint8_t*)&messageBase, sizeof(messageBase));
-		RingBuffer_append(tx, (uint8_t*)msg, msgSize);
-		RingBuffer_append(tx, &checksum, sizeof(uint8_t));
-//		printf("float ==> data: %.3f\n", msg->data);
-
-//		for(int i = 0; i < sizeof(messageBase); i++)
-//		{
-//			printf("%d ", ((uint8_t*)&messageBase)[i]);
-//		}
-//
-//		for(int i = 0; i < msgSize; i++)
-//		{
-//			printf("%d ", ((uint8_t*)msg)[i]);
-//		}
-//		printf("%d\n", checksum);
-	}
 	else if(hpub->type == MT_ODOMETRY2D)
 	{
-		yRosSerial_odometry2d* msg = (yRosSerial_odometry2d*) message;
-		size_t msgSize = sizeof(yRosSerial_odometry2d);
+		yRosSerial_odometry2d_t* msg = (yRosSerial_odometry2d_t*) message;
+		size_t msgSize = sizeof(yRosSerial_odometry2d_t);
 		messageBase.length = msgSize + 3; //additional: topicId, Message type, checksum
 
 		// generate checksum
@@ -512,8 +439,8 @@ void yRosSerial_publish(yRosSerial_pubHandle_t* hpub, void* message)
 	}
 	else if(hpub->type == MT_TWIST2D)
 	{
-		yRosSerial_twist2d* msg = (yRosSerial_twist2d*) message;
-		size_t msgSize = sizeof(yRosSerial_twist2d);
+		yRosSerial_twist2d_t* msg = (yRosSerial_twist2d_t*) message;
+		size_t msgSize = sizeof(yRosSerial_twist2d_t);
 		messageBase.length = msgSize + 3; //additional: topicId, Message type, checksum
 
 		// generate checksum
@@ -541,6 +468,98 @@ void yRosSerial_publish(yRosSerial_pubHandle_t* hpub, void* message)
 //			printf("%d ", ((uint8_t*)msg)[i]);
 //		}
 //		printf("%d\n", checksum);
+	}
+	else if(hpub->type == MT_UINT8_MULTIARRAY ||
+			hpub->type == MT_INT8_MULTIARRAY ||
+			hpub->type == MT_UINT16_MULTIARRAY ||
+			hpub->type == MT_INT16_MULTIARRAY ||
+			hpub->type == MT_UINT32_MULTIARRAY ||
+			hpub->type == MT_INT32_MULTIARRAY ||
+			hpub->type == MT_UINT64_MULTIARRAY ||
+			hpub->type == MT_INT64_MULTIARRAY ||
+			hpub->type == MT_FLOAT32_MULTIARRAY ||
+			hpub->type == MT_FLOAT64_MULTIARRAY)
+	{
+		yRosSerial_uint8mul_t* msg = (yRosSerial_uint8mul_t*) message;
+		size_t s = 0; //to handle size for single array
+		switch(hpub->type)
+		{
+		case MT_UINT8_MULTIARRAY:
+		case MT_INT8_MULTIARRAY: s = 1; break;
+		case MT_UINT16_MULTIARRAY:
+		case MT_INT16_MULTIARRAY: s = 2; break;
+		case MT_UINT32_MULTIARRAY:
+		case MT_INT32_MULTIARRAY:
+		case MT_FLOAT32_MULTIARRAY: s = 4; break;
+		case MT_UINT64_MULTIARRAY:
+		case MT_INT64_MULTIARRAY:
+		case MT_FLOAT64_MULTIARRAY: s = 8; break;
+		default: break;
+		}
+		size_t ls = sizeof(msg->length);
+
+		size_t msgSize = s * msg->length + ls;
+		messageBase.length = msgSize + 3; //additional: topicId, Message type, checksum
+
+		uint8_t m[msgSize];
+		memcpy(m, &msg->length, ls);
+		memcpy(m+ls, msg->data, msg->length * s);
+
+		// generate checksum
+		uint8_t checksum = 0;
+		checksum += messageBase.length;
+		checksum += messageBase.topicId;
+		checksum += messageBase.type;
+		for(int i = 0; i < msgSize; i++)
+		{
+			checksum += m[i];
+		}
+
+		RingBuffer_append(tx, header, sizeof(header));
+		RingBuffer_append(tx, (uint8_t*)&messageBase, sizeof(messageBase));
+		RingBuffer_append(tx, m, msgSize);
+		RingBuffer_append(tx, &checksum, sizeof(uint8_t));
+	}
+	else if(hpub->type == MT_UINT8 ||
+			hpub->type == MT_INT8 ||
+			hpub->type == MT_UINT16 ||
+			hpub->type == MT_INT16 ||
+			hpub->type == MT_UINT32 ||
+			hpub->type == MT_INT32 ||
+			hpub->type == MT_UINT64 ||
+			hpub->type == MT_INT64 ||
+			hpub->type == MT_FLOAT32 ||
+			hpub->type == MT_FLOAT64)
+	{
+		size_t s = 0; //to handle size of message
+		switch(hpub->type)
+		{
+		case MT_UINT8:
+		case MT_INT8: s = 1; break;
+		case MT_UINT16:
+		case MT_INT16: s = 2; break;
+		case MT_UINT32:
+		case MT_INT32:
+		case MT_FLOAT32: s = 4; break;
+		case MT_UINT64:
+		case MT_INT64:
+		case MT_FLOAT64: s = 8; break;
+		default: break;
+		}
+
+		messageBase.length = s + 3; //additional: topicId, Message type, checksum
+
+		// generate checksum
+		uint8_t checksum = 0;
+		checksum += messageBase.length;
+		checksum += messageBase.topicId;
+		checksum += messageBase.type;
+		for(int i = 0; i < s; i++) checksum += ((uint8_t*)message)[i];
+
+		RingBuffer_append(tx, header, sizeof(header));
+		RingBuffer_append(tx, (uint8_t*)&messageBase, sizeof(messageBase));
+		RingBuffer_append(tx, (uint8_t*)message, s);
+		RingBuffer_append(tx, &checksum, sizeof(uint8_t));
 	}
 	txFlush();
 }
