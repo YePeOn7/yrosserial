@@ -27,6 +27,10 @@
 #include "float64Callback.h"
 #include "odometry2dCallback.h"
 #include "twist2dCallback.h"
+#include "u8mCallback.h"
+#include "s8mCallback.h"
+#include "u8Callback.h"
+#include "s8Callback.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -50,7 +54,7 @@ DMA_HandleTypeDef hdma_usart2_rx;
 DMA_HandleTypeDef hdma_usart2_tx;
 
 /* USER CODE BEGIN PV */
-#define L_ARRAY 20
+
 
 uint8_t r[256] = { 0 };
 uint8_t t[256] = { 0 };
@@ -58,8 +62,28 @@ RingBuffer_t rb;
 int a = 0;
 
 int cnt = 0;
+
+// ---- data for subscriber ---- //
 float f32;
 double f64;
+uint8_t subU8M[L_ARRAY];
+int8_t subS8M[L_ARRAY];
+uint16_t subU16M[L_ARRAY];
+int16_t subS16M[L_ARRAY];
+uint32_t subU32M[L_ARRAY];
+int32_t subS32M[L_ARRAY];
+uint64_t subU64M[L_ARRAY];
+int64_t subS64M[L_ARRAY];
+
+uint8_t subU8;
+int8_t subS8;
+uint16_t subU16;
+int16_t subS16;
+uint32_t subU32;
+int32_t subS32;
+uint64_t subU64;
+int64_t subS64;
+
 yRosSerial_odometry2d_t odometry2d;
 yRosSerial_twist2d_t twist2d;
 
@@ -156,11 +180,16 @@ int main(void)
 	yRosSerial_pubHandle_t *pubF32 = yRosSerial_advertise("/pub_f32", MT_FLOAT32);
 	yRosSerial_pubHandle_t *pubF64 = yRosSerial_advertise("/pub_f64", MT_FLOAT64);
 
-	yRosSerial_subHandle_t *subTest1 = yRosSerial_subscribe("/subString", MT_STRING, stringCallback);
-	yRosSerial_subHandle_t *subTest2 = yRosSerial_subscribe("/subFloat32", MT_FLOAT32, float32Callback);
-	yRosSerial_subHandle_t *subTest3 = yRosSerial_subscribe("/subFloat64", MT_FLOAT64, float64Callback);
-	yRosSerial_subHandle_t *subTest4 = yRosSerial_subscribe("/subOdometry", MT_ODOMETRY2D, odometry2dCallback);
-	yRosSerial_subHandle_t *subTest5 = yRosSerial_subscribe("/subTwist", MT_TWIST2D, twist2dCallback);
+//	yRosSerial_subscribe("/subString", MT_STRING, stringCallback);
+//	yRosSerial_subscribe("/subFloat32", MT_FLOAT32, float32Callback);
+//	yRosSerial_subscribe("/subFloat64", MT_FLOAT64, float64Callback);
+//	yRosSerial_subscribe("/subOdometry", MT_ODOMETRY2D, odometry2dCallback);
+//	yRosSerial_subscribe("/subTwist", MT_TWIST2D, twist2dCallback);
+
+	yRosSerial_subscribe("/sub_u8m", MT_UINT8_MULTIARRAY, u8mCallback);
+	yRosSerial_subscribe("/sub_s8m", MT_INT8_MULTIARRAY, s8mCallback);
+	yRosSerial_subscribe("/sub_u8", MT_UINT8, u8Callback);
+	yRosSerial_subscribe("/sub_s8", MT_INT8, s8Callback);
 
 	char bufferMsg[256];
 

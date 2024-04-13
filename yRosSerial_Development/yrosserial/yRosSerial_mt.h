@@ -109,6 +109,12 @@ typedef struct
 typedef struct
 {
 	uint16_t length;
+	void *data;
+}yRosSerial_voidmul_t;
+
+typedef struct
+{
+	uint16_t length;
 	uint8_t *data;
 }yRosSerial_uint8mul_t;
 

@@ -189,19 +189,37 @@ static int processIncomingMessage(Rb2_t *rb, size_t len)
 	}
 	else if(b[t] >= MAX_INSTRUCTION_VAL) // process message from subscibed topic
 	{
-		int id = b[t]; //topic id
-		uint8_t x[512];
+		uint8_t id; // topic id
+		uint8_t mt; // message Type
 
-		memcpy(x, rb->buffer, 256);
-
-		uint8_t data[len-2]; // -2 for excluding id and mt
-		rb2_pop(rb, data, 2); // remove 2 data
-		rb2_pop(rb, data, len-2);
-
+		rb2_pop(rb, &id, 1); // grab topic id
+		rb2_pop(rb, &mt, 1); // grab message type
 		for(int i = 0; i < MAX_SUBSRIBER_SIZE; i++)
 		{
-			if(subscriberList[i].id == id){
-				subscriberList[i].callback((void*)data);
+			if(subscriberList[i].id == id)
+			{
+				uint8_t data[len-2]; // -2 for excluding id and mt
+				rb2_pop(rb, data, len-2);
+
+				yRosSerial_voidmul_t md = {0}; // for multi array data
+				uint8_t isArrayTipe = (mt == MT_UINT8_MULTIARRAY ||
+						mt == MT_UINT16_MULTIARRAY ||
+						mt == MT_UINT32_MULTIARRAY ||
+						mt == MT_UINT64_MULTIARRAY ||
+						mt == MT_INT8_MULTIARRAY ||
+						mt == MT_INT16_MULTIARRAY ||
+						mt == MT_INT32_MULTIARRAY ||
+						mt == MT_INT64_MULTIARRAY);
+				if(isArrayTipe)
+				{
+					md.length = *((uint16_t*)data);
+					md.data = data+sizeof(uint16_t);
+					subscriberList[i].callback((void*)&md);
+				}
+				else
+				{
+					subscriberList[i].callback((void*)data);
+				}
 			}
 		}
 	}

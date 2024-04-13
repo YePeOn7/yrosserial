@@ -31,7 +31,7 @@ extern "C" {
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
-
+#define L_ARRAY 20
 /* USER CODE END Includes */
 
 /* Exported types ------------------------------------------------------------*/
