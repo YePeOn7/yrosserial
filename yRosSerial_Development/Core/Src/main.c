@@ -167,7 +167,7 @@ int main(void)
 	HAL_UART_Init(&huart2);
 	yRosSerial_setting_t rosSerialSetting;
 	rosSerialSetting.rxBufSize = 1024;
-	rosSerialSetting.txBufSize = 2048;
+	rosSerialSetting.txBufSize = 1024;
 //	rosSerialSetting.rx = r;
 //	rosSerialSetting.tx = t;
 	rosSerialSetting.huart = &huart2;
